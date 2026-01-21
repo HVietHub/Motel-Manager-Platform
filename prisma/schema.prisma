@@ -1,0 +1,167 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  role      String   @default("TENANT")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  landlord  Landlord?
+  tenant    Tenant?
+}
+
+model Landlord {
+  id        String     @id @default(cuid())
+  userId    String     @unique
+  phone     String
+  address   String?
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  buildings Building[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
+model Building {
+  id          String   @id @default(cuid())
+  landlordId  String
+  name        String
+  address     String
+  description String?
+  landlord    Landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  rooms       Room[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([landlordId])
+}
+
+model Room {
+  id          String     @id @default(cuid())
+  buildingId  String
+  roomNumber  String
+  floor       Int        @default(1)
+  area        Float
+  price       Float
+  deposit     Float      @default(0)
+  description String?
+  status      String     @default("AVAILABLE")
+  building    Building   @relation(fields: [buildingId], references: [id], onDelete: Cascade)
+  tenant      Tenant?
+  contracts   Contract[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@unique([buildingId, roomNumber])
+  @@index([buildingId])
+  @@index([status])
+}
+
+model Tenant {
+  id          String     @id @default(cuid())
+  userId      String     @unique
+  landlordId  String     @default("")
+  invitationStatus String @default("none") // none, pending, accepted, rejected
+  phone       String
+  idCard      String?
+  address     String?
+  roomId      String?    @unique
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  room        Room?      @relation(fields: [roomId], references: [id])
+  contracts   Contract[]
+  invoices    Invoice[]
+  notifications Notification[]
+  maintenanceRequests MaintenanceRequest[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  
+  @@index([landlordId])
+  @@index([roomId])
+}
+
+model Contract {
+  id            String    @id @default(cuid())
+  roomId        String
+  tenantId      String
+  startDate     DateTime
+  endDate       DateTime
+  rentAmount    Float
+  depositAmount Float     @default(0)
+  terms         String?
+  status        String    @default("ACTIVE")
+  room          Room      @relation(fields: [roomId], references: [id])
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@index([roomId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Invoice {
+  id                String    @id @default(cuid())
+  tenantId          String
+  month             Int
+  year              Int
+  rentAmount        Float
+  electricityAmount Float     @default(0)
+  waterAmount       Float     @default(0)
+  serviceAmount     Float     @default(0)
+  otherAmount       Float     @default(0)
+  totalAmount       Float
+  description       String?
+  dueDate           DateTime?
+  paidDate          DateTime?
+  status            String    @default("UNPAID")
+  tenant            Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@unique([tenantId, month, year])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  tenantId  String
+  title     String
+  message   String
+  isRead    Boolean  @default(false)
+  tenant    Tenant   @relation(fields: [tenantId], references: [id])
+  createdAt DateTime @default(now())
+  
+  @@index([tenantId])
+  @@index([isRead])
+}
+
+model MaintenanceRequest {
+  id          String   @id @default(cuid())
+  tenantId    String
+  roomId      String
+  title       String
+  description String
+  priority    String   @default("MEDIUM")
+  status      String   @default("PENDING")
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  room        Room     @relation(fields: [roomId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([tenantId])
+  @@index([roomId])
+  @@index([status])
+}

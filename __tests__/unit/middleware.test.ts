@@ -10,9 +10,9 @@ import { describe, it, expect } from '@jest/globals';
 
 describe('Middleware Configuration', () => {
   it('should have correct matcher configuration', () => {
-    // Import the config from middleware
-    const middlewareModule = require('../../middleware');
-    const config = middlewareModule.config;
+    // Import the config from proxy
+    const proxyModule = require('../../proxy');
+    const config = proxyModule.config;
 
     expect(config).toBeDefined();
     expect(config.matcher).toBeDefined();

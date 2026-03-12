@@ -42,6 +42,7 @@ type Invoice = {
   month: number;
   year: number;
   rentAmount: number;
+  electricityUsage: number;
   electricityAmount: number;
   waterAmount: number;
   serviceAmount: number;
@@ -58,8 +59,11 @@ type Tenant = {
   };
   room?: {
     roomNumber: string;
+    price: number;
     building: {
       name: string;
+      electricityPrice: number;
+      waterPrice: number;
     };
   };
 };
@@ -78,9 +82,7 @@ export default function InvoicesPage() {
     tenantId: "",
     month: "",
     year: "",
-    rentAmount: "",
-    electricityAmount: "",
-    waterAmount: "",
+    electricityUsage: "",
     serviceAmount: "",
     otherAmount: "",
   });
@@ -111,6 +113,7 @@ export default function InvoicesPage() {
         month: invoice.month,
         year: invoice.year,
         rentAmount: invoice.rentAmount,
+        electricityUsage: invoice.electricityUsage || 0,
         electricityAmount: invoice.electricityAmount,
         waterAmount: invoice.waterAmount,
         serviceAmount: invoice.serviceAmount,
@@ -167,7 +170,7 @@ export default function InvoicesPage() {
         return;
       }
 
-      if (!formData.tenantId || !formData.month || !formData.year || !formData.rentAmount) {
+      if (!formData.tenantId || !formData.month || !formData.year || formData.electricityUsage === "") {
         toast.error("Vui lòng điền đầy đủ thông tin");
         return;
       }
@@ -180,9 +183,7 @@ export default function InvoicesPage() {
           tenantId: formData.tenantId,
           month: parseInt(formData.month),
           year: parseInt(formData.year),
-          rentAmount: parseFloat(formData.rentAmount),
-          electricityAmount: formData.electricityAmount ? parseFloat(formData.electricityAmount) : 0,
-          waterAmount: formData.waterAmount ? parseFloat(formData.waterAmount) : 0,
+          electricityUsage: parseFloat(formData.electricityUsage),
           serviceAmount: formData.serviceAmount ? parseFloat(formData.serviceAmount) : 0,
           otherAmount: formData.otherAmount ? parseFloat(formData.otherAmount) : 0,
         }),
@@ -193,15 +194,17 @@ export default function InvoicesPage() {
         throw new Error(error.error || "Failed to create invoice");
       }
 
+      const result = await response.json();
       toast.success("Tạo hóa đơn thành công!");
+      if (result.warnings && result.warnings.length > 0) {
+        result.warnings.forEach((warning: string) => toast.warning(warning));
+      }
       setIsCreateDialogOpen(false);
       setFormData({
         tenantId: "",
         month: "",
         year: "",
-        rentAmount: "",
-        electricityAmount: "",
-        waterAmount: "",
+        electricityUsage: "",
         serviceAmount: "",
         otherAmount: "",
       });
@@ -339,8 +342,9 @@ export default function InvoicesPage() {
                   <TableHead>Phòng</TableHead>
                   <TableHead className="text-center">Tháng/Năm</TableHead>
                   <TableHead className="text-right">Tiền Phòng</TableHead>
-                  <TableHead className="text-right">Điện</TableHead>
-                  <TableHead className="text-right">Nước</TableHead>
+                  <TableHead className="text-right">Số điện (kWh)</TableHead>
+                  <TableHead className="text-right">Tiền điện</TableHead>
+                  <TableHead className="text-right">Tiền nước</TableHead>
                   <TableHead className="text-right">Khác</TableHead>
                   <TableHead className="text-right">Tổng Cộng</TableHead>
                   <TableHead className="text-center">Trạng Thái</TableHead>
@@ -350,7 +354,7 @@ export default function InvoicesPage() {
               <TableBody>
                 {filteredInvoices.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={10} className="text-center py-8">
+                    <TableCell colSpan={11} className="text-center py-8">
                       <Receipt className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery || statusFilter !== "all"
@@ -378,6 +382,9 @@ export default function InvoicesPage() {
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(invoice.rentAmount)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {invoice.electricityUsage.toFixed(1)} kWh
                       </TableCell>
                       <TableCell className="text-right">
                         {formatCurrency(invoice.electricityAmount)}
@@ -494,47 +501,37 @@ export default function InvoicesPage() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="roomRent">Tiền Phòng (VNĐ)</Label>
+                <Label htmlFor="electricityUsage">Số điện tiêu thụ (kWh)</Label>
                 <Input 
-                  id="roomRent" 
+                  id="electricityUsage" 
                   type="number" 
-                  placeholder="2500000" 
-                  value={formData.rentAmount}
-                  onChange={(e) => setFormData({ ...formData, rentAmount: e.target.value })}
+                  min="0"
+                  step="0.1"
+                  placeholder="150" 
+                  value={formData.electricityUsage}
+                  onChange={(e) => setFormData({ ...formData, electricityUsage: e.target.value })}
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="electricityCost">Tiền Điện (VNĐ)</Label>
+                <Label htmlFor="serviceAmount">Phí dịch vụ (VNĐ)</Label>
                 <Input 
-                  id="electricityCost" 
+                  id="serviceAmount" 
                   type="number" 
-                  placeholder="300000" 
-                  value={formData.electricityAmount}
-                  onChange={(e) => setFormData({ ...formData, electricityAmount: e.target.value })}
+                  placeholder="0" 
+                  value={formData.serviceAmount}
+                  onChange={(e) => setFormData({ ...formData, serviceAmount: e.target.value })}
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="waterCost">Tiền Nước (VNĐ)</Label>
-                <Input 
-                  id="waterCost" 
-                  type="number" 
-                  placeholder="100000" 
-                  value={formData.waterAmount}
-                  onChange={(e) => setFormData({ ...formData, waterAmount: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="otherCosts">Chi Phí Khác (VNĐ)</Label>
-                <Input 
-                  id="otherCosts" 
-                  type="number" 
-                  placeholder="0" 
-                  value={formData.otherAmount}
-                  onChange={(e) => setFormData({ ...formData, otherAmount: e.target.value })}
-                />
-              </div>
+            <div className="space-y-2">
+              <Label htmlFor="otherAmount">Chi phí khác (VNĐ)</Label>
+              <Input 
+                id="otherAmount" 
+                type="number" 
+                placeholder="0" 
+                value={formData.otherAmount}
+                onChange={(e) => setFormData({ ...formData, otherAmount: e.target.value })}
+              />
             </div>
           </div>
           <DialogFooter>

@@ -19,11 +19,9 @@ const invoiceSchema = z.object({
   tenantId: z.string().min(1, "Vui lòng chọn người thuê"),
   month: z.number().int().min(1, "Tháng phải >= 1").max(12, "Tháng phải <= 12"),
   year: z.number().int().min(2020, "Năm không hợp lệ").max(2100, "Năm không hợp lệ"),
-  roomPrice: z.number().min(0, "Tiền phòng phải >= 0"),
-  electricityPrice: z.number().min(0, "Tiền điện phải >= 0"),
-  waterPrice: z.number().min(0, "Tiền nước phải >= 0"),
-  servicePrice: z.number().min(0, "Phí dịch vụ phải >= 0").optional(),
-  otherFees: z.number().min(0, "Phí khác phải >= 0").optional(),
+  electricityUsage: z.number().min(0, "Số điện không hợp lệ"),
+  serviceAmount: z.number().min(0, "Phí dịch vụ phải >= 0").optional(),
+  otherAmount: z.number().min(0, "Phí khác phải >= 0").optional(),
 });
 
 export type InvoiceFormData = z.infer<typeof invoiceSchema>;
@@ -31,7 +29,15 @@ export type InvoiceFormData = z.infer<typeof invoiceSchema>;
 type Tenant = {
   id: string;
   user: { name: string; email: string };
-  room: { roomNumber: string; price: number; building: { name: string } } | null;
+  room: { 
+    roomNumber: string; 
+    price: number; 
+    building: { 
+      name: string;
+      electricityPrice: number;
+      waterPrice: number;
+    } 
+  } | null;
 };
 
 type InvoiceFormProps = {
@@ -62,29 +68,26 @@ export function InvoiceForm({
     defaultValues: {
       month: new Date().getMonth() + 1,
       year: new Date().getFullYear(),
-      servicePrice: 0,
-      otherFees: 0,
+      electricityUsage: 0,
+      serviceAmount: 0,
+      otherAmount: 0,
       ...initialData,
     },
   });
 
   const selectedTenantId = watch("tenantId");
-  const roomPrice = watch("roomPrice") || 0;
-  const electricityPrice = watch("electricityPrice") || 0;
-  const waterPrice = watch("waterPrice") || 0;
-  const servicePrice = watch("servicePrice") || 0;
-  const otherFees = watch("otherFees") || 0;
-
-  const total = roomPrice + electricityPrice + waterPrice + servicePrice + otherFees;
+  const electricityUsage = watch("electricityUsage") || 0;
+  const serviceAmount = watch("serviceAmount") || 0;
+  const otherAmount = watch("otherAmount") || 0;
 
   const selectedTenant = tenants.find((t) => t.id === selectedTenantId);
 
-  // Auto-fill room price when tenant is selected
-  useEffect(() => {
-    if (selectedTenant?.room && !initialData?.roomPrice) {
-      setValue("roomPrice", selectedTenant.room.price);
-    }
-  }, [selectedTenant, setValue, initialData]);
+  // Calculate amounts based on tenant's room and building
+  const roomPrice = selectedTenant?.room?.price || 0;
+  const electricityPrice = selectedTenant?.room?.building.electricityPrice || 0;
+  const waterPrice = selectedTenant?.room?.building.waterPrice || 0;
+  const electricityAmount = electricityUsage * electricityPrice;
+  const total = roomPrice + electricityAmount + waterPrice + serviceAmount + otherAmount;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -155,81 +158,74 @@ export function InvoiceForm({
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="roomPrice">
-          Tiền Phòng (VNĐ) <span className="text-destructive">*</span>
+        <Label htmlFor="electricityUsage">
+          Số điện tiêu thụ (kWh) <span className="text-destructive">*</span>
         </Label>
         <Input
-          id="roomPrice"
+          id="electricityUsage"
           type="number"
-          placeholder="2500000"
-          {...register("roomPrice")}
+          min="0"
+          step="0.1"
+          placeholder="150"
+          {...register("electricityUsage", { valueAsNumber: true })}
           disabled={isLoading}
         />
-        {errors.roomPrice && (
-          <p className="text-sm text-destructive">{errors.roomPrice.message}</p>
+        {errors.electricityUsage && (
+          <p className="text-sm text-destructive">{errors.electricityUsage.message}</p>
+        )}
+        {electricityUsage > 1000 && (
+          <p className="text-sm text-yellow-600">⚠️ Số điện tiêu thụ cao (&gt;1000 kWh)</p>
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="electricityPrice">
-            Tiền Điện (VNĐ) <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="electricityPrice"
-            type="number"
-            placeholder="500000"
-            {...register("electricityPrice")}
-            disabled={isLoading}
-          />
-          {errors.electricityPrice && (
-            <p className="text-sm text-destructive">{errors.electricityPrice.message}</p>
-          )}
+      {selectedTenant?.room && (
+        <div className="p-4 bg-blue-50 rounded-lg space-y-2">
+          <p className="text-sm font-semibold text-blue-900">Chi tiết tính toán:</p>
+          <div className="space-y-1 text-sm text-blue-800">
+            <div className="flex justify-between">
+              <span>Tiền phòng:</span>
+              <span className="font-medium">{roomPrice.toLocaleString('vi-VN')} VNĐ</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tiền điện ({electricityUsage} kWh × {electricityPrice.toLocaleString('vi-VN')} VNĐ/kWh):</span>
+              <span className="font-medium">{electricityAmount.toLocaleString('vi-VN')} VNĐ</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Tiền nước (cố định):</span>
+              <span className="font-medium">{waterPrice.toLocaleString('vi-VN')} VNĐ</span>
+            </div>
+          </div>
         </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="waterPrice">
-            Tiền Nước (VNĐ) <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="waterPrice"
-            type="number"
-            placeholder="100000"
-            {...register("waterPrice")}
-            disabled={isLoading}
-          />
-          {errors.waterPrice && (
-            <p className="text-sm text-destructive">{errors.waterPrice.message}</p>
-          )}
-        </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="space-y-2">
-          <Label htmlFor="servicePrice">Phí Dịch Vụ (VNĐ)</Label>
+          <Label htmlFor="serviceAmount">Phí Dịch Vụ (VNĐ)</Label>
           <Input
-            id="servicePrice"
+            id="serviceAmount"
             type="number"
+            min="0"
             placeholder="0"
-            {...register("servicePrice")}
+            {...register("serviceAmount", { valueAsNumber: true })}
             disabled={isLoading}
           />
-          {errors.servicePrice && (
-            <p className="text-sm text-destructive">{errors.servicePrice.message}</p>
+          {errors.serviceAmount && (
+            <p className="text-sm text-destructive">{errors.serviceAmount.message}</p>
           )}
         </div>
 
         <div className="space-y-2">
-          <Label htmlFor="otherFees">Phí Khác (VNĐ)</Label>
+          <Label htmlFor="otherAmount">Phí Khác (VNĐ)</Label>
           <Input
-            id="otherFees"
+            id="otherAmount"
             type="number"
+            min="0"
             placeholder="0"
-            {...register("otherFees")}
+            {...register("otherAmount", { valueAsNumber: true })}
             disabled={isLoading}
           />
-          {errors.otherFees && (
-            <p className="text-sm text-destructive">{errors.otherFees.message}</p>
+          {errors.otherAmount && (
+            <p className="text-sm text-destructive">{errors.otherAmount.message}</p>
           )}
         </div>
       </div>

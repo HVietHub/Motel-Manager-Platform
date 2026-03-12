@@ -8,50 +8,79 @@ import { prisma } from "@/lib/prisma";
  * Tenants must have already registered with a TENANT account.
  */
 
-// POST invite existing tenant by email
+// POST invite existing tenant by userCode with room assignment
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { landlordId, email } = body;
+    const { landlordId, userCode, roomId } = body;
 
-    if (!landlordId || !email) {
+    if (!landlordId || !userCode || !roomId) {
       return NextResponse.json(
-        { error: "Landlord ID and email are required" },
+        { error: "Landlord ID, user code, and room ID are required" },
         { status: 400 }
       );
     }
 
-    // Find user with TENANT role by email
-    const user = await prisma.user.findUnique({
-      where: { email },
-      include: { tenant: true },
+    // Find tenant by userCode
+    const tenant = await prisma.tenant.findUnique({
+      where: { userCode },
+      include: { 
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+            role: true,
+          },
+        },
+      },
     });
 
-    if (!user) {
+    if (!tenant) {
       return NextResponse.json(
-        { error: "Không tìm thấy người dùng với email này" },
+        { error: "Không tìm thấy người thuê với mã này" },
         { status: 404 }
       );
     }
 
-    if (user.role !== "TENANT") {
+    if (tenant.user.role !== "TENANT") {
       return NextResponse.json(
         { error: "Người dùng này không phải là người thuê" },
         { status: 400 }
       );
     }
 
-    if (!user.tenant) {
+    // Check if tenant is already assigned to a landlord
+    if (tenant.landlordId && tenant.landlordId !== '') {
       return NextResponse.json(
-        { error: "Không tìm thấy thông tin người thuê" },
+        { error: "Người thuê này đã được mời bởi chủ nhà khác" },
+        { status: 400 }
+      );
+    }
+
+    // Check if room exists and is available
+    const room = await prisma.room.findUnique({
+      where: { id: roomId },
+      include: { building: true },
+    });
+
+    if (!room) {
+      return NextResponse.json(
+        { error: "Không tìm thấy phòng" },
         { status: 404 }
       );
     }
 
-    // Check if tenant is already assigned to this landlord
-    if (user.tenant.landlordId && user.tenant.landlordId !== '') {
+    if (room.building.landlordId !== landlordId) {
       return NextResponse.json(
-        { error: "Người thuê này đã được mời bởi chủ nhà khác" },
+        { error: "Phòng này không thuộc về bạn" },
+        { status: 403 }
+      );
+    }
+
+    if (room.status !== "AVAILABLE") {
+      return NextResponse.json(
+        { error: "Phòng này không còn trống" },
         { status: 400 }
       );
     }
@@ -68,12 +97,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update tenant with pending invitation
+    // Update tenant with pending invitation and room
     const updatedTenant = await prisma.tenant.update({
-      where: { id: user.tenant.id },
+      where: { id: tenant.id },
       data: { 
         landlordId,
-        invitationStatus: "pending"
+        invitationStatus: "pending",
+        pendingRoomId: roomId,
       },
       include: {
         user: {
@@ -86,12 +116,12 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Create notification for tenant with action buttons
+    // Create notification for tenant
     await prisma.notification.create({
       data: {
         tenantId: updatedTenant.id,
         title: "Lời mời từ chủ nhà",
-        message: `Chủ nhà ${landlord?.user.name || "N/A"} đã gửi lời mời cho bạn tham gia hệ thống quản lý. Vui lòng chấp nhận hoặc từ chối lời mời này.`,
+        message: `Chủ nhà ${landlord?.user.name || "N/A"} đã mời bạn thuê phòng ${room.roomNumber} tại ${room.building.name}. Giá thuê: ${room.price.toLocaleString('vi-VN')} VNĐ/tháng. Vui lòng chấp nhận hoặc từ chối lời mời này.`,
         isRead: false,
       },
     });

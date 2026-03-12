@@ -266,3 +266,64 @@
 .badge-info {
   @apply bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400;
 }
+
+/* Optimized animations for landing page */
+@keyframes bounce-slow {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(6px);
+  }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.15;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2.5s ease-in-out infinite;
+}
+
+/* Reduce motion for accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .animate-bounce-slow,
+  .animate-pulse-soft,
+  .animate-shake,
+  .animate-fade-in,
+  .animate-slide-up,
+  .animate-pulse-subtle {
+    animation: none;
+  }
+  
+  * {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
+
+/* Hardware acceleration for smoother animations */
+.will-change-transform {
+  will-change: transform;
+}
+
+.will-change-opacity {
+  will-change: opacity;
+}
+
+/* GPU accelerated transforms */
+.gpu-accelerate {
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}

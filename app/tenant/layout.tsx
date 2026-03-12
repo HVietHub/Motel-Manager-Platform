@@ -1,4 +1,4 @@
-import { TenantSidebar } from "@/components/tenant-sidebar";
+import { TenantSidebar, TenantTopBar } from "@/components/tenant-sidebar";
 
 export default function TenantLayout({
   children,
@@ -8,9 +8,14 @@ export default function TenantLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <TenantSidebar />
-      <main id="main-content" className="flex-1 overflow-y-auto lg:ml-64 mt-16 lg:mt-0 custom-scrollbar" role="main">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden ml-0 lg:ml-64">
+        <div className="hidden lg:block">
+          <TenantTopBar />
+        </div>
+        <main id="main-content" className="flex-1 overflow-y-auto custom-scrollbar mt-16 lg:mt-0" role="main">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

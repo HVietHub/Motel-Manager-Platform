@@ -29,6 +29,9 @@ type Building = {
   id: string;
   name: string;
   address: string;
+  description?: string;
+  electricityPrice?: number;
+  waterPrice?: number;
   totalRooms: number;
   availableRooms: number;
   createdAt: string;
@@ -45,6 +48,14 @@ export default function BuildingsPage() {
   const [formData, setFormData] = useState({
     name: "",
     address: "",
+    electricityPrice: 3000,
+    waterPrice: 50000,
+  });
+  const [editFormData, setEditFormData] = useState({
+    name: "",
+    address: "",
+    electricityPrice: 3000,
+    waterPrice: 50000,
   });
 
   useEffect(() => {
@@ -60,7 +71,11 @@ export default function BuildingsPage() {
       const response = await fetch(`/api/buildings?landlordId=${landlordId}`);
       if (response.ok) {
         const data = await response.json();
-        setBuildings(data);
+        setBuildings(data.map((b: any) => ({
+          ...b,
+          electricityPrice: b.electricityPrice || 3000,
+          waterPrice: b.waterPrice || 50000,
+        })));
       }
     } catch (error) {
       console.error("Error fetching buildings:", error);
@@ -93,9 +108,13 @@ export default function BuildingsPage() {
       });
 
       if (response.ok) {
+        const result = await response.json();
         toast.success("Tạo tòa nhà thành công!");
+        if (result.warnings && result.warnings.length > 0) {
+          result.warnings.forEach((warning: string) => toast.warning(warning));
+        }
         setIsCreateDialogOpen(false);
-        setFormData({ name: "", address: "" });
+        setFormData({ name: "", address: "", electricityPrice: 3000, waterPrice: 50000 });
         fetchBuildings(landlordId);
       } else {
         toast.error("Không thể tạo tòa nhà");
@@ -106,9 +125,36 @@ export default function BuildingsPage() {
     }
   };
 
-  const handleEdit = () => {
-    toast.success("Cập nhật tòa nhà thành công!");
-    setIsEditDialogOpen(false);
+  const handleEdit = async () => {
+    if (!selectedBuilding) return;
+
+    try {
+      const response = await fetch(`/api/buildings/${selectedBuilding.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(editFormData),
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        toast.success("Cập nhật tòa nhà thành công!");
+        if (result.warnings && result.warnings.length > 0) {
+          result.warnings.forEach((warning: string) => toast.warning(warning));
+        }
+        setIsEditDialogOpen(false);
+        setSelectedBuilding(null);
+        if (landlordId) {
+          fetchBuildings(landlordId);
+        }
+      } else {
+        toast.error("Không thể cập nhật tòa nhà");
+      }
+    } catch (error) {
+      console.error("Error updating building:", error);
+      toast.error("Đã xảy ra lỗi");
+    }
   };
 
   const handleDelete = (building: Building) => {
@@ -209,6 +255,12 @@ export default function BuildingsPage() {
                             size="sm"
                             onClick={() => {
                               setSelectedBuilding(building);
+                              setEditFormData({
+                                name: building.name,
+                                address: building.address,
+                                electricityPrice: building.electricityPrice || 3000,
+                                waterPrice: building.waterPrice || 50000,
+                              });
                               setIsEditDialogOpen(true);
                             }}
                           >
@@ -263,6 +315,34 @@ export default function BuildingsPage() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
               />
             </div>
+            <div className="space-y-2">
+              <Label htmlFor="electricityPrice">Giá điện (VNĐ/kWh)</Label>
+              <Input
+                id="electricityPrice"
+                type="number"
+                min="0"
+                placeholder="3000"
+                value={formData.electricityPrice}
+                onChange={(e) => setFormData({ ...formData, electricityPrice: parseFloat(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Giá điện mặc định: 3000 VNĐ/kWh
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="waterPrice">Giá nước (VNĐ/tháng)</Label>
+              <Input
+                id="waterPrice"
+                type="number"
+                min="0"
+                placeholder="50000"
+                value={formData.waterPrice}
+                onChange={(e) => setFormData({ ...formData, waterPrice: parseFloat(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Giá nước cố định mỗi tháng, mặc định: 50000 VNĐ
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
@@ -287,15 +367,43 @@ export default function BuildingsPage() {
               <Label htmlFor="edit-name">Tên Tòa Nhà</Label>
               <Input
                 id="edit-name"
-                defaultValue={selectedBuilding?.name}
+                value={editFormData.name}
+                onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit-address">Địa Chỉ</Label>
               <Input
                 id="edit-address"
-                defaultValue={selectedBuilding?.address}
+                value={editFormData.address}
+                onChange={(e) => setEditFormData({ ...editFormData, address: e.target.value })}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-electricityPrice">Giá điện (VNĐ/kWh)</Label>
+              <Input
+                id="edit-electricityPrice"
+                type="number"
+                min="0"
+                value={editFormData.electricityPrice}
+                onChange={(e) => setEditFormData({ ...editFormData, electricityPrice: parseFloat(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Giá điện hiện tại: {editFormData.electricityPrice.toLocaleString('vi-VN')} VNĐ/kWh
+              </p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-waterPrice">Giá nước (VNĐ/tháng)</Label>
+              <Input
+                id="edit-waterPrice"
+                type="number"
+                min="0"
+                value={editFormData.waterPrice}
+                onChange={(e) => setEditFormData({ ...editFormData, waterPrice: parseFloat(e.target.value) || 0 })}
+              />
+              <p className="text-xs text-muted-foreground">
+                Giá nước hiện tại: {editFormData.waterPrice.toLocaleString('vi-VN')} VNĐ/tháng
+              </p>
             </div>
           </div>
           <DialogFooter>

@@ -1,4 +1,4 @@
-import { LandlordSidebar } from "@/components/landlord-sidebar";
+import { LandlordSidebar, LandlordTopBar } from "@/components/landlord-sidebar";
 
 export default function LandlordLayout({
   children,
@@ -8,9 +8,12 @@ export default function LandlordLayout({
   return (
     <div className="flex h-screen overflow-hidden">
       <LandlordSidebar />
-      <main id="main-content" className="flex-1 overflow-y-auto bg-muted/30 custom-scrollbar" role="main">
-        {children}
-      </main>
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <LandlordTopBar />
+        <main id="main-content" className="flex-1 overflow-y-auto bg-muted/30 custom-scrollbar" role="main">
+          {children}
+        </main>
+      </div>
     </div>
   );
 }

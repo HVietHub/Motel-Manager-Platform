@@ -33,7 +33,7 @@ import { Plus, Search, Pencil, XCircle, FileText } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/use-landlord-id";
 
-type ContractStatus = "ACTIVE" | "EXPIRED" | "TERMINATED";
+type ContractStatus = "ACTIVE" | "EXPIRED" | "TERMINATED" | "PENDING";
 
 type Contract = {
   id: string;
@@ -149,7 +149,8 @@ export default function ContractsPage() {
     try {
       if (!landlordId) return;
 
-      const response = await fetch(`/api/rooms?landlordId=${landlordId}&status=AVAILABLE`);
+      // Fetch all rooms (not just AVAILABLE) so we can create contracts for occupied rooms too
+      const response = await fetch(`/api/rooms?landlordId=${landlordId}`);
       if (!response.ok) throw new Error("Failed to fetch rooms");
 
       const data = await response.json();
@@ -162,6 +163,7 @@ export default function ContractsPage() {
   const getStatusBadge = (status: ContractStatus) => {
     const variants = {
       ACTIVE: { label: "Đang Hiệu Lực", className: "bg-green-100 text-green-700" },
+      PENDING: { label: "Chưa Bắt Đầu", className: "bg-yellow-100 text-yellow-700" },
       EXPIRED: { label: "Hết Hạn", className: "bg-gray-100 text-gray-700" },
       TERMINATED: { label: "Đã Hủy", className: "bg-red-100 text-red-700" },
     };
@@ -351,6 +353,7 @@ export default function ContractsPage() {
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">Tất cả</SelectItem>
+                <SelectItem value="PENDING">Chưa Bắt Đầu</SelectItem>
                 <SelectItem value="ACTIVE">Đang Hiệu Lực</SelectItem>
                 <SelectItem value="EXPIRED">Hết Hạn</SelectItem>
                 <SelectItem value="TERMINATED">Đã Hủy</SelectItem>

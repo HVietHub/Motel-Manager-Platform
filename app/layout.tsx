@@ -4,11 +4,12 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/sonner";
 import { SkipToContent } from "@/components/shared/skip-to-content";
 import { NextAuthProvider } from "@/components/providers/session-provider";
+import { ChatbotWidget } from "@/components/chatbot/chatbot-widget";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
 export const metadata: Metadata = {
-  title: "HomeLink - Nền Tảng Quản Lý Nhà Trọ Thông Minh",
+  title: "HouseSea - Nền Tảng Quản Lý Nhà Trọ Thông Minh",
   description: "Kết nối chủ nhà và người thuê - Quản lý nhà trọ dễ dàng, hiệu quả",
 };
 
@@ -23,6 +24,7 @@ export default function RootLayout({
         <NextAuthProvider>
           <SkipToContent />
           {children}
+          <ChatbotWidget />
           <Toaster position="top-right" richColors />
         </NextAuthProvider>
       </body>

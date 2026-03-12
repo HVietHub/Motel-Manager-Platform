@@ -151,16 +151,6 @@ export default function NotificationsPage() {
             Gửi thông báo đến người thuê
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => setIsBroadcastDialogOpen(true)}>
-            <Users className="mr-2 h-4 w-4" />
-            Gửi Tất Cả
-          </Button>
-          <Button onClick={() => setIsCreateDialogOpen(true)}>
-            <Plus className="mr-2 h-4 w-4" />
-            Gửi Thông Báo
-          </Button>
-        </div>
       </div>
 
       {/* Info Cards */}

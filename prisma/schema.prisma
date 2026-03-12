@@ -20,11 +20,16 @@ model User {
   updatedAt DateTime @updatedAt
   landlord  Landlord?
   tenant    Tenant?
+  posts     Post[]
+  likes     Like[]
+  comments  Comment[]
+  shares    Share[]
 }
 
 model Landlord {
   id        String     @id @default(cuid())
   userId    String     @unique
+  userCode  String     @unique // LL001, LL002, etc.
   phone     String
   address   String?
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -34,15 +39,17 @@ model Landlord {
 }
 
 model Building {
-  id          String   @id @default(cuid())
-  landlordId  String
-  name        String
-  address     String
-  description String?
-  landlord    Landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
-  rooms       Room[]
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  id               String   @id @default(cuid())
+  landlordId       String
+  name             String
+  address          String
+  description      String?
+  electricityPrice Float    @default(3000)  // VNĐ/kWh
+  waterPrice       Float    @default(50000) // VNĐ/tháng
+  landlord         Landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
+  rooms            Room[]
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
   
   @@index([landlordId])
 }
@@ -72,8 +79,10 @@ model Room {
 model Tenant {
   id          String     @id @default(cuid())
   userId      String     @unique
+  userCode    String     @unique // TN001, TN002, etc.
   landlordId  String     @default("")
   invitationStatus String @default("none") // none, pending, accepted, rejected
+  pendingRoomId String?  // Room ID in pending invitation
   phone       String
   idCard      String?
   address     String?
@@ -117,6 +126,7 @@ model Invoice {
   month             Int
   year              Int
   rentAmount        Float
+  electricityUsage  Float     @default(0)  // kWh
   electricityAmount Float     @default(0)
   waterAmount       Float     @default(0)
   serviceAmount     Float     @default(0)
@@ -164,4 +174,95 @@ model MaintenanceRequest {
   @@index([tenantId])
   @@index([roomId])
   @@index([status])
+}
+
+model Post {
+  id         String    @id @default(cuid())
+  authorId   String
+  authorType String    // 'LANDLORD' or 'TENANT'
+  content    String
+  images     String    @default("[]") // JSON array of image URLs
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  
+  author     User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  likes      Like[]
+  comments   Comment[]
+  shares     Share[]
+  
+  @@index([authorId])
+  @@index([createdAt])
+}
+
+model Like {
+  id        String   @id @default(cuid())
+  postId    String
+  userId    String
+  createdAt DateTime @default(now())
+  
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  content   String
+  parentId  String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies   Comment[] @relation("CommentReplies")
+  
+  @@index([postId])
+  @@index([authorId])
+  @@index([parentId])
+}
+
+model Share {
+  id         String   @id @default(cuid())
+  postId     String
+  userId     String
+  sharedWith String?  // 'facebook', 'twitter', 'link', etc.
+  createdAt  DateTime @default(now())
+  
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([postId])
+  @@index([userId])
+}
+
+model AnalyticsCache {
+  id         String   @id @default(cuid())
+  landlordId String
+  cacheKey   String   @unique
+  data       String   // JSON
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  
+  @@index([landlordId])
+  @@index([expiresAt])
+}
+
+model AnalyticsAuditLog {
+  id           String   @id @default(cuid())
+  landlordId   String
+  action       String   // 'get_overview', 'predict_revenue', etc.
+  parameters   String   // JSON
+  responseTime Int      // milliseconds
+  success      Boolean
+  errorMessage String?
+  createdAt    DateTime @default(now())
+  
+  @@index([landlordId])
+  @@index([createdAt])
 }

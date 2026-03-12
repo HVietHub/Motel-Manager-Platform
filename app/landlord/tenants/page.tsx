@@ -29,7 +29,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Pencil, UserPlus, UserMinus, Users } from "lucide-react";
+import { Plus, Search, Pencil, UserPlus, UserMinus, Users, Eye, EyeOff, Trash2, ArrowRightLeft } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/use-landlord-id";
 
@@ -40,6 +40,8 @@ export default function TenantsPage() {
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [isAssignRoomDialogOpen, setIsAssignRoomDialogOpen] = useState(false);
+  const [isChangeRoomDialogOpen, setIsChangeRoomDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
   const [tenants, setTenants] = useState<any[]>([]);
   const [pendingTenants, setPendingTenants] = useState<any[]>([]);
@@ -51,16 +53,20 @@ export default function TenantsPage() {
     email: "",
     phone: "",
     idCard: "",
-    address: "",
   });
-  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteUserCode, setInviteUserCode] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
+  const [buildings, setBuildings] = useState<any[]>([]);
+  const [selectedBuildingId, setSelectedBuildingId] = useState("");
+  const [availableRoomsForInvite, setAvailableRoomsForInvite] = useState<any[]>([]);
+  const [visibleTenantIds, setVisibleTenantIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     if (landlordId) {
       fetchTenants(landlordId);
       fetchPendingTenants(landlordId);
       fetchAvailableRooms(landlordId);
+      fetchBuildings(landlordId);
     } else {
       setIsLoading(false);
     }
@@ -105,6 +111,31 @@ export default function TenantsPage() {
     }
   };
 
+  const fetchBuildings = async (landlordId: string) => {
+    try {
+      const response = await fetch(`/api/buildings?landlordId=${landlordId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setBuildings(data);
+      }
+    } catch (error) {
+      console.error("Error fetching buildings:", error);
+    }
+  };
+
+  const fetchRoomsByBuilding = async (buildingId: string) => {
+    if (!landlordId) return;
+    try {
+      const response = await fetch(`/api/rooms?landlordId=${landlordId}&buildingId=${buildingId}&status=AVAILABLE`);
+      if (response.ok) {
+        const data = await response.json();
+        setAvailableRoomsForInvite(data);
+      }
+    } catch (error) {
+      console.error("Error fetching rooms:", error);
+    }
+  };
+
   const filteredTenants = tenants.filter((tenant) =>
     tenant.user?.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tenant.user?.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -116,8 +147,13 @@ export default function TenantsPage() {
   };
 
   const handleInvite = async () => {
-    if (!landlordId || !inviteEmail) {
-      toast.error("Vui lòng nhập email người thuê");
+    if (!landlordId || !inviteUserCode) {
+      toast.error("Vui lòng nhập mã người dùng");
+      return;
+    }
+
+    if (!selectedRoomId) {
+      toast.error("Vui lòng chọn phòng");
       return;
     }
 
@@ -125,15 +161,19 @@ export default function TenantsPage() {
       const response = await fetch("/api/tenants/invite", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ landlordId, email: inviteEmail }),
+        body: JSON.stringify({ landlordId, userCode: inviteUserCode, roomId: selectedRoomId }),
       });
 
       if (response.ok) {
         toast.success("Đã gửi lời mời cho người thuê!");
         setIsInviteDialogOpen(false);
-        setInviteEmail("");
+        setInviteUserCode("");
+        setSelectedRoomId("");
+        setSelectedBuildingId("");
+        setAvailableRoomsForInvite([]);
         fetchPendingTenants(landlordId);
-        setActiveTab("pending"); // Switch to pending tab
+        fetchAvailableRooms(landlordId);
+        setActiveTab("pending");
       } else {
         const error = await response.json();
         toast.error(error.error || "Không thể mời người thuê");
@@ -168,6 +208,60 @@ export default function TenantsPage() {
     }
   };
 
+  const handleChangeRoom = async () => {
+    if (!landlordId || !selectedTenant || !selectedRoomId) {
+      toast.error("Vui lòng chọn phòng");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/tenants/${selectedTenant.id}/assign-room`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ landlordId, roomId: selectedRoomId }),
+      });
+
+      if (response.ok) {
+        toast.success("Chuyển phòng thành công!");
+        setIsChangeRoomDialogOpen(false);
+        setSelectedRoomId("");
+        fetchTenants(landlordId);
+        fetchAvailableRooms(landlordId);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Không thể chuyển phòng");
+      }
+    } catch (error) {
+      console.error("Error changing room:", error);
+      toast.error("Đã xảy ra lỗi");
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!landlordId || !selectedTenant) return;
+
+    try {
+      const response = await fetch(`/api/tenants/${selectedTenant.id}`, {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ landlordId }),
+      });
+
+      if (response.ok) {
+        toast.success("Đã xóa người thuê!");
+        setIsDeleteDialogOpen(false);
+        fetchTenants(landlordId);
+        fetchAvailableRooms(landlordId);
+      } else {
+        const error = await response.json();
+        toast.error(error.error || "Không thể xóa người thuê");
+      }
+    } catch (error) {
+      console.error("Error deleting tenant:", error);
+      toast.error("Đã xảy ra lỗi");
+    }
+  };
+
   const handleAssignRoom = async () => {
     if (!landlordId || !selectedTenant || !selectedRoomId) {
       toast.error("Vui lòng chọn phòng");
@@ -197,6 +291,18 @@ export default function TenantsPage() {
     }
   };
 
+  const toggleTenantVisibility = (tenantId: string) => {
+    setVisibleTenantIds(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tenantId)) {
+        newSet.delete(tenantId);
+      } else {
+        newSet.add(tenantId);
+      }
+      return newSet;
+    });
+  };
+
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("vi-VN", {
       style: "currency",
@@ -215,7 +321,10 @@ export default function TenantsPage() {
           </p>
         </div>
         <Button onClick={() => {
-          setInviteEmail("");
+          setInviteUserCode("");
+          setSelectedRoomId("");
+          setSelectedBuildingId("");
+          setAvailableRoomsForInvite([]);
           setIsInviteDialogOpen(true);
         }}>
           <Plus className="mr-2 h-4 w-4" />
@@ -266,14 +375,16 @@ export default function TenantsPage() {
                   <TableHead>Số Điện Thoại</TableHead>
                   <TableHead>CMND/CCCD</TableHead>
                   <TableHead>Phòng</TableHead>
-                  <TableHead className="text-center">Trạng Thái</TableHead>
+                  <TableHead>Thời Gian Thuê</TableHead>
+                  <TableHead className="text-center">Trạng Thái Thuê</TableHead>
+                  <TableHead className="text-center">Thanh Toán</TableHead>
                   <TableHead className="text-right">Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredTenants.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8">
+                    <TableCell colSpan={9} className="text-center py-8">
                       <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery
@@ -289,8 +400,12 @@ export default function TenantsPage() {
                         {tenant.user?.name || "N/A"}
                       </TableCell>
                       <TableCell>{tenant.user?.email || "N/A"}</TableCell>
-                      <TableCell>{tenant.phone}</TableCell>
-                      <TableCell>{tenant.idCard || "N/A"}</TableCell>
+                      <TableCell>
+                        {visibleTenantIds.has(tenant.id) ? tenant.phone : "••••••••"}
+                      </TableCell>
+                      <TableCell>
+                        {visibleTenantIds.has(tenant.id) ? (tenant.idCard || "N/A") : "••••••••"}
+                      </TableCell>
                       <TableCell>
                         {tenant.room ? (
                           <div>
@@ -301,6 +416,20 @@ export default function TenantsPage() {
                           </div>
                         ) : (
                           <span className="text-muted-foreground">Chưa gán</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {tenant.contracts && tenant.contracts.length > 0 ? (
+                          <div className="text-sm">
+                            <div>
+                              {new Date(tenant.contracts[0].startDate).toLocaleDateString("vi-VN")}
+                            </div>
+                            <div className="text-muted-foreground">
+                              đến {new Date(tenant.contracts[0].endDate).toLocaleDateString("vi-VN")}
+                            </div>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground">Chưa có hợp đồng</span>
                         )}
                       </TableCell>
                       <TableCell className="text-center">
@@ -314,8 +443,37 @@ export default function TenantsPage() {
                           </Badge>
                         )}
                       </TableCell>
+                      <TableCell className="text-center">
+                        {tenant.paymentSummary?.status === "PAID" ? (
+                          <Badge className="bg-green-100 text-green-700" variant="secondary">
+                            Đã Đóng
+                          </Badge>
+                        ) : tenant.paymentSummary?.status === "OVERDUE" ? (
+                          <Badge className="bg-orange-100 text-orange-700" variant="secondary">
+                            Còn Nợ
+                          </Badge>
+                        ) : tenant.paymentSummary?.status === "UNPAID" ? (
+                          <Badge className="bg-red-100 text-red-700" variant="secondary">
+                            Chưa Đóng
+                          </Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">-</span>
+                        )}
+                      </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => toggleTenantVisibility(tenant.id)}
+                            title={visibleTenantIds.has(tenant.id) ? "Ẩn thông tin" : "Xem thông tin"}
+                          >
+                            {visibleTenantIds.has(tenant.id) ? (
+                              <EyeOff className="h-4 w-4" />
+                            ) : (
+                              <Eye className="h-4 w-4" />
+                            )}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -326,14 +484,39 @@ export default function TenantsPage() {
                                 email: tenant.user?.email || "",
                                 phone: tenant.phone,
                                 idCard: tenant.idCard || "",
-                                address: tenant.address || "",
                               });
                               setIsEditDialogOpen(true);
                             }}
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
-                          {!tenant.room && (
+                          {tenant.room ? (
+                            <>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTenant(tenant);
+                                  setSelectedRoomId("");
+                                  setIsChangeRoomDialogOpen(true);
+                                }}
+                                title="Chuyển phòng"
+                              >
+                                <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedTenant(tenant);
+                                  setIsDeleteDialogOpen(true);
+                                }}
+                                title="Xóa người thuê"
+                              >
+                                <Trash2 className="h-4 w-4 text-red-600" />
+                              </Button>
+                            </>
+                          ) : (
                             <Button
                               variant="ghost"
                               size="sm"
@@ -398,30 +581,75 @@ export default function TenantsPage() {
         </CardContent>
       </Card>
 
-      {/* Invite Dialog */}
       <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Mời Người Thuê</DialogTitle>
             <DialogDescription>
-              Nhập email của người thuê đã có tài khoản để mời họ vào quản lý của bạn.
-              Người thuê cần đăng ký tài khoản trước khi bạn có thể mời họ.
+              Nhập mã người dùng và chọn phòng để mời người thuê vào quản lý.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="inviteEmail">Email Người Thuê</Label>
+              <Label htmlFor="inviteUserCode">Mã Người Dùng (User ID)</Label>
               <Input
-                id="inviteEmail"
-                type="email"
-                placeholder="nguyenvana@example.com"
-                value={inviteEmail}
-                onChange={(e) => setInviteEmail(e.target.value)}
+                id="inviteUserCode"
+                type="text"
+                placeholder="TN001"
+                value={inviteUserCode}
+                onChange={(e) => setInviteUserCode(e.target.value.toUpperCase())}
               />
               <p className="text-xs text-muted-foreground">
-                Người thuê phải đã đăng ký tài khoản với vai trò "Người Thuê"
+                Mã người dùng có dạng TN001, TN002, ...
               </p>
             </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="building">Tòa Nhà</Label>
+              <Select 
+                value={selectedBuildingId} 
+                onValueChange={(value) => {
+                  setSelectedBuildingId(value);
+                  setSelectedRoomId("");
+                  fetchRoomsByBuilding(value);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn tòa nhà" />
+                </SelectTrigger>
+                <SelectContent>
+                  {buildings.map((building) => (
+                    <SelectItem key={building.id} value={building.id}>
+                      {building.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedBuildingId && (
+              <div className="space-y-2">
+                <Label htmlFor="room">Phòng Trống</Label>
+                <Select value={selectedRoomId} onValueChange={setSelectedRoomId}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn phòng trống" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableRoomsForInvite.length === 0 ? (
+                      <div className="p-2 text-sm text-muted-foreground">
+                        Không có phòng trống
+                      </div>
+                    ) : (
+                      availableRoomsForInvite.map((room) => (
+                        <SelectItem key={room.id} value={room.id}>
+                          Phòng {room.roomNumber} - {formatCurrency(room.price)}
+                        </SelectItem>
+                      ))
+                    )}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>
@@ -536,14 +764,6 @@ export default function TenantsPage() {
                 />
               </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-address">Địa Chỉ</Label>
-              <Input
-                id="edit-address"
-                value={formData.address}
-                onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              />
-            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
@@ -585,6 +805,65 @@ export default function TenantsPage() {
               Hủy
             </Button>
             <Button onClick={handleAssignRoom}>Gán Phòng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Change Room Dialog */}
+      <Dialog open={isChangeRoomDialogOpen} onOpenChange={setIsChangeRoomDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chuyển Phòng</DialogTitle>
+            <DialogDescription>
+              Chuyển phòng cho người thuê: {selectedTenant?.user?.name}
+              <br />
+              Phòng hiện tại: {selectedTenant?.room?.building?.name} - Phòng {selectedTenant?.room?.roomNumber}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="newRoom">Phòng Mới</Label>
+              <Select value={selectedRoomId} onValueChange={setSelectedRoomId}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Chọn phòng trống" />
+                </SelectTrigger>
+                <SelectContent>
+                  {rooms.map((room) => (
+                    <SelectItem key={room.id} value={room.id}>
+                      {room.building?.name} - Phòng {room.roomNumber} - {formatCurrency(room.price)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsChangeRoomDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button onClick={handleChangeRoom}>Chuyển Phòng</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Xác Nhận Xóa</DialogTitle>
+            <DialogDescription>
+              Bạn có chắc chắn muốn xóa người thuê: {selectedTenant?.user?.name}?
+              <br />
+              <span className="text-red-600 font-semibold">Hành động này không thể hoàn tác!</span>
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteDialogOpen(false)}>
+              Hủy
+            </Button>
+            <Button variant="destructive" onClick={handleDelete}>
+              Xóa Người Thuê
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

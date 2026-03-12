@@ -60,10 +60,27 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
 }
 
 /**
+ * Generate user code for landlord or tenant
+ * Format: LL001, LL002 for landlords, TN001, TN002 for tenants
+ */
+async function generateUserCode(role: 'LANDLORD' | 'TENANT'): Promise<string> {
+  const prefix = role === 'LANDLORD' ? 'LL' : 'TN'
+  
+  if (role === 'LANDLORD') {
+    const count = await prisma.landlord.count()
+    return `${prefix}${String(count + 1).padStart(3, '0')}`
+  } else {
+    const count = await prisma.tenant.count()
+    return `${prefix}${String(count + 1).padStart(3, '0')}`
+  }
+}
+
+/**
  * Register a new landlord with User and Landlord records
  * 
  * Creates both User (with role LANDLORD) and Landlord records in a transaction.
  * Password is hashed before storage.
+ * Generates unique user code (LL001, LL002, etc.)
  * 
  * @param data - Registration data including email, password, name, phone, and optional address
  * @returns Promise<User> - Created user with landlord relation
@@ -86,6 +103,9 @@ export async function registerLandlord(data: RegisterLandlordInput): Promise<Use
   // Hash password
   const hashedPassword = await hashPassword(password);
 
+  // Generate user code
+  const userCode = await generateUserCode('LANDLORD')
+
   // Create User and Landlord in a transaction
   const user = await prisma.$transaction(async (tx) => {
     // Create User with role LANDLORD
@@ -102,6 +122,7 @@ export async function registerLandlord(data: RegisterLandlordInput): Promise<Use
     await tx.landlord.create({
       data: {
         userId: newUser.id,
+        userCode,
         phone,
         address: address || null,
       },
@@ -130,4 +151,5 @@ export const AuthService = {
   hashPassword,
   verifyPassword,
   registerLandlord,
+  generateUserCode,
 };

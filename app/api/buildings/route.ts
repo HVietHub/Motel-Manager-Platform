@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { landlordId, name, address, description } = body;
+    const { landlordId, name, address, description, electricityPrice, waterPrice } = body;
 
     if (!landlordId || !name || !address) {
       return NextResponse.json(
@@ -67,16 +67,48 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate electricityPrice and waterPrice
+    const finalElectricityPrice = electricityPrice !== undefined ? electricityPrice : 3000;
+    const finalWaterPrice = waterPrice !== undefined ? waterPrice : 50000;
+
+    if (finalElectricityPrice < 0) {
+      return NextResponse.json(
+        { error: "Giá điện phải >= 0" },
+        { status: 400 }
+      );
+    }
+
+    if (finalWaterPrice < 0) {
+      return NextResponse.json(
+        { error: "Giá nước phải >= 0" },
+        { status: 400 }
+      );
+    }
+
+    // Warning for high prices (not blocking)
+    const warnings = [];
+    if (finalElectricityPrice > 10000) {
+      warnings.push("Giá điện quá cao (>10000 VNĐ/kWh)");
+    }
+    if (finalWaterPrice > 200000) {
+      warnings.push("Giá nước quá cao (>200000 VNĐ/tháng)");
+    }
+
     const building = await prisma.building.create({
       data: {
         landlordId,
         name,
         address,
         description,
+        electricityPrice: finalElectricityPrice,
+        waterPrice: finalWaterPrice,
       },
     });
 
-    return NextResponse.json(building, { status: 201 });
+    return NextResponse.json({ 
+      building, 
+      warnings: warnings.length > 0 ? warnings : undefined 
+    }, { status: 201 });
   } catch (error) {
     console.error("Create building error:", error);
     return NextResponse.json(

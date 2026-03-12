@@ -39,8 +39,22 @@ export default function ProfilePage() {
 
   const fetchLandlordInfo = async (landlordId: string) => {
     try {
-      // TODO: Create API endpoint to get landlord info
-      // For now, use data from session
+      const response = await fetch(`/api/landlords/${landlordId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setLandlord(data);
+        setFormData({
+          name: data.user?.name || session?.user?.name || "",
+          email: data.user?.email || session?.user?.email || "",
+          phone: data.phone || "",
+          address: data.address || "",
+        });
+      } else {
+        console.error("Failed to fetch landlord:", response.status);
+        toast.error("Vui lòng đăng xuất và đăng nhập lại để cập nhật thông tin");
+      }
+    } catch (error) {
+      console.error("Error fetching landlord info:", error);
       if (session?.user) {
         setFormData({
           name: session.user.name || "",
@@ -49,8 +63,6 @@ export default function ProfilePage() {
           address: "",
         });
       }
-    } catch (error) {
-      console.error("Error fetching landlord info:", error);
     } finally {
       setIsLoading(false);
     }
@@ -111,7 +123,14 @@ export default function ProfilePage() {
               <User className="h-12 w-12 text-primary" />
             </div>
             <div>
-              <h3 className="text-xl font-semibold">{session?.user?.name}</h3>
+              <h3 className="text-xl font-semibold">
+                {session?.user?.name}
+                {landlord?.userCode && (
+                  <span className="text-sm font-mono text-muted-foreground ml-2">
+                    #{landlord.userCode}
+                  </span>
+                )}
+              </h3>
               <p className="text-sm text-muted-foreground">{session?.user?.email}</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Vai trò: Chủ Nhà

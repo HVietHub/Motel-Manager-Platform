@@ -51,25 +51,54 @@ export async function POST(
     }
 
     if (action === "accept") {
-      // Accept invitation
-      await prisma.tenant.update({
-        where: { id: params.id },
-        data: {
-          invitationStatus: "accepted",
-        },
+      // Accept invitation - assign room automatically
+      if (!tenant.pendingRoomId) {
+        return NextResponse.json(
+          { error: "Không tìm thấy thông tin phòng trong lời mời" },
+          { status: 400 }
+        );
+      }
+
+      // Check if room is still available
+      const room = await prisma.room.findUnique({
+        where: { id: tenant.pendingRoomId },
       });
 
+      if (!room || room.status !== "AVAILABLE") {
+        return NextResponse.json(
+          { error: "Phòng này không còn trống" },
+          { status: 400 }
+        );
+      }
+
+      // Update tenant and room in transaction
+      await prisma.$transaction([
+        prisma.tenant.update({
+          where: { id: params.id },
+          data: {
+            invitationStatus: "accepted",
+            roomId: tenant.pendingRoomId,
+            pendingRoomId: null,
+          },
+        }),
+        prisma.room.update({
+          where: { id: tenant.pendingRoomId },
+          data: { status: "OCCUPIED" },
+        }),
+      ]);
+
       return NextResponse.json({
-        message: "Đã chấp nhận lời mời",
+        message: "Đã chấp nhận lời mời và được gán phòng",
         status: "accepted",
       });
     } else {
-      // Reject invitation - reset landlordId and status
+      // Reject invitation - reset landlordId, status, and pendingRoomId
       await prisma.tenant.update({
         where: { id: params.id },
         data: {
           landlordId: "",
           invitationStatus: "rejected",
+          pendingRoomId: null,
         },
       });
 

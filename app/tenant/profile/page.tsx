@@ -23,11 +23,12 @@ export default function TenantProfilePage() {
     address: "",
     roomNumber: "",
     buildingName: "",
+    userCode: "",
   });
   const [editData, setEditData] = useState({
     name: "",
     phone: "",
-    address: "",
+    idCard: "",
   });
 
   useEffect(() => {
@@ -51,12 +52,13 @@ export default function TenantProfilePage() {
           address: data.address || "",
           roomNumber: data.room?.roomNumber || "",
           buildingName: data.room?.building?.name || "",
+          userCode: data.userCode || "",
         };
         setTenantData(profileData);
         setEditData({
           name: profileData.name,
           phone: profileData.phone,
-          address: profileData.address,
+          idCard: profileData.idCard,
         });
       } else {
         toast.error("Không thể tải thông tin cá nhân");
@@ -79,7 +81,7 @@ export default function TenantProfilePage() {
         body: JSON.stringify({
           name: editData.name,
           phone: editData.phone,
-          address: editData.address,
+          idCard: editData.idCard,
         }),
       });
 
@@ -138,7 +140,7 @@ export default function TenantProfilePage() {
               setEditData({
                 name: tenantData.name,
                 phone: tenantData.phone,
-                address: tenantData.address,
+                idCard: tenantData.idCard,
               });
             }}>
               Hủy
@@ -176,6 +178,31 @@ export default function TenantProfilePage() {
                 <p className="font-medium">{tenantData.name}</p>
               </div>
             )}
+          </div>
+
+          {/* User Code - Read Only */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-muted-foreground" />
+              Mã Người Dùng
+              <Badge variant="secondary" className="ml-2">Không thể thay đổi</Badge>
+            </Label>
+            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="font-mono font-bold text-blue-700">{tenantData.userCode || "Đang tải..."}</p>
+              {tenantData.userCode && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleCopy(tenantData.userCode, "Mã người dùng")}
+                >
+                  {copiedField === "Mã người dùng" ? (
+                    <Check className="h-4 w-4 text-green-600" />
+                  ) : (
+                    <Copy className="h-4 w-4" />
+                  )}
+                </Button>
+              )}
+            </div>
           </div>
 
           {/* Email - Read Only */}
@@ -234,46 +261,34 @@ export default function TenantProfilePage() {
             )}
           </div>
 
-          {/* ID Card - Read Only */}
+          {/* ID Card */}
           <div className="space-y-2">
-            <Label className="flex items-center gap-2">
+            <Label htmlFor="idCard" className="flex items-center gap-2">
               <CreditCard className="h-4 w-4 text-muted-foreground" />
               CMND/CCCD
-              <Badge variant="secondary" className="ml-2">Không thể thay đổi</Badge>
-            </Label>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <p className="font-medium">{tenantData.idCard || "Chưa cập nhật"}</p>
-              {tenantData.idCard && (
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => handleCopy(tenantData.idCard, "CMND/CCCD")}
-                >
-                  {copiedField === "CMND/CCCD" ? (
-                    <Check className="h-4 w-4 text-green-600" />
-                  ) : (
-                    <Copy className="h-4 w-4" />
-                  )}
-                </Button>
-              )}
-            </div>
-          </div>
-
-          {/* Address */}
-          <div className="space-y-2">
-            <Label htmlFor="address" className="flex items-center gap-2">
-              <MapPin className="h-4 w-4 text-muted-foreground" />
-              Địa Chỉ
             </Label>
             {isEditing ? (
               <Input
-                id="address"
-                value={editData.address}
-                onChange={(e) => setEditData({ ...editData, address: e.target.value })}
+                id="idCard"
+                value={editData.idCard}
+                onChange={(e) => setEditData({ ...editData, idCard: e.target.value })}
               />
             ) : (
-              <div className="p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium">{tenantData.address || "Chưa cập nhật"}</p>
+              <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <p className="font-medium">{tenantData.idCard || "Chưa cập nhật"}</p>
+                {tenantData.idCard && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => handleCopy(tenantData.idCard, "CMND/CCCD")}
+                  >
+                    {copiedField === "CMND/CCCD" ? (
+                      <Check className="h-4 w-4 text-green-600" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                )}
               </div>
             )}
           </div>

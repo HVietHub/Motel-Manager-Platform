@@ -81,11 +81,24 @@ export default function TenantMaintenancePage() {
         return;
       }
 
+      // Get tenant info to get roomId
+      const tenantResponse = await fetch(`/api/tenants/${tenantId}`);
+      if (!tenantResponse.ok) {
+        throw new Error("Không thể lấy thông tin người thuê");
+      }
+      const tenantData = await tenantResponse.json();
+      
+      if (!tenantData.roomId) {
+        toast.error("Bạn chưa được phân phòng. Vui lòng liên hệ chủ nhà.");
+        return;
+      }
+
       const response = await fetch("/api/maintenance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           tenantId,
+          roomId: tenantData.roomId,
           title: formData.title,
           description: formData.description,
           priority: formData.priority,

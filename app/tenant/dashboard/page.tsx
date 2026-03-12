@@ -126,7 +126,7 @@ export default function TenantDashboardPage() {
             Trang Chủ
           </h1>
           <p className="text-muted-foreground mt-2 text-lg">
-            Chào mừng bạn đến với HomeLink
+            Chào mừng bạn đến với HouseSea
           </p>
         </div>
         <div className="text-right">

@@ -14,6 +14,7 @@ import {
   Wrench,
   LogOut,
   BarChart3,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -27,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useEffect, useState } from "react";
+import { useSession, signOut } from "next-auth/react";
 
 const menuItems = [
   {
@@ -70,7 +72,12 @@ const menuItems = [
     icon: Wrench,
   },
   {
-    title: "Báo Cáo",
+    title: "Cộng Đồng",
+    href: "/landlord/community",
+    icon: MessageSquare,
+  },
+  {
+    title: "Báo Cáo & AI",
     href: "/landlord/reports",
     icon: BarChart3,
   },
@@ -79,25 +86,10 @@ const menuItems = [
 export function LandlordSidebar() {
   const pathname = usePathname();
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  const { data: session } = useSession();
 
-  useEffect(() => {
-    // Get user from localStorage
-    const userStr = localStorage.getItem("user");
-    if (userStr) {
-      setUser(JSON.parse(userStr));
-    }
-  }, []);
-
-  const handleLogout = () => {
-    // Clear all user data from localStorage
-    localStorage.removeItem("user");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("landlordId");
-    localStorage.removeItem("tenantId");
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
     router.push("/login");
   };
 
@@ -115,9 +107,11 @@ export function LandlordSidebar() {
     <div className="flex h-screen w-64 flex-col border-r bg-background">
       {/* Header */}
       <div className="p-6">
-        <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          HomeLink
-        </h1>
+        <Link href="/landlord/dashboard">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+            HouseSea
+          </h1>
+        </Link>
         <p className="text-sm text-muted-foreground mt-1">
           Dành cho Chủ Nhà
         </p>
@@ -147,42 +141,60 @@ export function LandlordSidebar() {
           );
         })}
       </nav>
+    </div>
+  );
+}
 
-      <Separator />
+export function LandlordTopBar() {
+  const router = useRouter();
+  const { data: session } = useSession();
 
-      {/* User Menu */}
-      <div className="p-4">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="w-full justify-start gap-3 h-auto py-2">
-              <Avatar className="h-8 w-8">
-                <AvatarFallback>{user ? getInitials(user.name) : "CN"}</AvatarFallback>
-              </Avatar>
-              <div className="flex flex-col items-start text-sm">
-                <span className="font-medium">{user?.name || "Chủ Nhà"}</span>
-                <span className="text-xs text-muted-foreground">
-                  {user?.email || "landlord@example.com"}
-                </span>
-              </div>
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Tài Khoản</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={() => router.push("/landlord/profile")}>
-              Thông Tin Cá Nhân
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              Cài Đặt
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Đăng Xuất
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "CN";
+    const parts = name.split(" ");
+    if (parts.length >= 2) {
+      return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
+  return (
+    <div className="h-16 border-b bg-background flex items-center justify-end px-6">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-3 h-auto py-2">
+            <div className="flex flex-col items-end text-sm">
+              <span className="font-medium">{session?.user?.name || "Chủ Nhà"}</span>
+              <span className="text-xs text-muted-foreground">
+                {session?.user?.email || ""}
+              </span>
+            </div>
+            <Avatar className="h-8 w-8">
+              <AvatarFallback>{session?.user?.name ? getInitials(session.user.name) : "CN"}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Tài Khoản</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/landlord/profile")}>
+            Thông Tin Cá Nhân
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            Cài Đặt
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem className="text-destructive" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Đăng Xuất
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </div>
   );
 }

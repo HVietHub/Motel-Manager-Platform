@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { invoiceAutoCalculationService } from "@/lib/services/invoice-auto-calculation.service";
 
 // GET all invoices for a landlord or tenant
 export async function GET(request: NextRequest) {
@@ -71,7 +72,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST create new invoice
+// POST create new invoice with auto-calculation
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
@@ -80,33 +81,45 @@ export async function POST(request: NextRequest) {
       tenantId,
       month,
       year,
-      rentAmount,
-      electricityAmount,
-      waterAmount,
+      electricityUsage,
       serviceAmount,
       otherAmount,
       description,
       dueDate,
     } = body;
 
-    if (!landlordId || !tenantId || !month || !year || !rentAmount) {
+    if (!landlordId || !tenantId || !month || !year || electricityUsage === undefined) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
       );
     }
 
-    // Validate month and year
-    if (month < 1 || month > 12) {
+    // Validate electricityUsage
+    if (electricityUsage < 0) {
       return NextResponse.json(
-        { error: "Invalid month" },
+        { error: "Số điện không hợp lệ" },
         { status: 400 }
       );
     }
 
-    if (year < 2000 || year > 2100) {
+    // Warning for high electricity usage (not blocking)
+    const warnings = [];
+    if (electricityUsage > 1000) {
+      warnings.push("Số điện tiêu thụ cao (>1000 kWh)");
+    }
+
+    // Validate month and year
+    if (month < 1 || month > 12) {
       return NextResponse.json(
-        { error: "Invalid year" },
+        { error: "Tháng phải từ 1 đến 12" },
+        { status: 400 }
+      );
+    }
+
+    if (year < 2020 || year > 2100) {
+      return NextResponse.json(
+        { error: "Năm phải từ 2020 đến 2100" },
         { status: 400 }
       );
     }
@@ -117,6 +130,13 @@ export async function POST(request: NextRequest) {
         id: tenantId,
         landlordId,
       },
+      include: {
+        room: {
+          include: {
+            building: true,
+          },
+        },
+      },
     });
 
     if (!tenant) {
@@ -126,72 +146,50 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check for duplicate invoice
-    const existingInvoice = await prisma.invoice.findFirst({
-      where: {
-        tenantId,
-        month,
-        year,
-      },
+    // Verify landlord owns the building
+    if (tenant.room?.building.landlordId !== landlordId) {
+      return NextResponse.json(
+        { error: "Unauthorized: Landlord does not own this building" },
+        { status: 403 }
+      );
+    }
+
+    // Create invoice with auto-calculation
+    const invoice = await invoiceAutoCalculationService.createInvoiceWithAutoCalculation({
+      tenantId,
+      month,
+      year,
+      electricityUsage,
+      serviceAmount,
+      otherAmount,
+      description,
+      dueDate: dueDate ? new Date(dueDate) : undefined,
     });
 
-    if (existingInvoice) {
+    return NextResponse.json({
+      invoice,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    }, { status: 201 });
+  } catch (error: any) {
+    console.error("Create invoice error:", error);
+    
+    // Handle specific error messages
+    if (error.message === "Người thuê chưa được gán phòng") {
       return NextResponse.json(
-        { error: "Invoice already exists for this month and year" },
+        { error: "Người thuê chưa được gán phòng" },
+        { status: 400 }
+      );
+    }
+    
+    if (error.message === "Hóa đơn đã tồn tại cho tháng này") {
+      return NextResponse.json(
+        { error: "Hóa đơn đã tồn tại cho tháng này" },
         { status: 400 }
       );
     }
 
-    // Calculate total
-    const totalAmount =
-      rentAmount +
-      (electricityAmount || 0) +
-      (waterAmount || 0) +
-      (serviceAmount || 0) +
-      (otherAmount || 0);
-
-    const invoice = await prisma.invoice.create({
-      data: {
-        tenantId,
-        month,
-        year,
-        rentAmount,
-        electricityAmount: electricityAmount || 0,
-        waterAmount: waterAmount || 0,
-        serviceAmount: serviceAmount || 0,
-        otherAmount: otherAmount || 0,
-        totalAmount,
-        description,
-        dueDate: dueDate ? new Date(dueDate) : undefined,
-        status: "UNPAID",
-      },
-      include: {
-        tenant: {
-          include: {
-            user: {
-              select: {
-                name: true,
-              },
-            },
-            room: {
-              include: {
-                building: {
-                  select: {
-                    name: true,
-                  },
-                },
-              },
-            },
-          },
-        },
-      },
-    });
-
-    return NextResponse.json(invoice, { status: 201 });
-  } catch (error) {
-    console.error("Create invoice error:", error);
     return NextResponse.json(
-      { error: "Failed to create invoice" },
+      { error: error.message || "Failed to create invoice" },
       { status: 500 }
     );
   }

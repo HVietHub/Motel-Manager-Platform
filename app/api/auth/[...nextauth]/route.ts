@@ -19,6 +19,7 @@ export const authOptions: NextAuthOptions = {
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
+        rememberMe: { label: 'Remember Me', type: 'checkbox' },
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
@@ -57,6 +58,7 @@ export const authOptions: NextAuthOptions = {
           role: user.role,
           landlordId: user.landlord?.id,
           tenantId: user.tenant?.id,
+          rememberMe: credentials.rememberMe === 'true',
         };
       },
     }),
@@ -64,7 +66,20 @@ export const authOptions: NextAuthOptions = {
   
   session: {
     strategy: 'jwt',
-    maxAge: 30 * 24 * 60 * 60, // 30 days
+    maxAge: 14 * 24 * 60 * 60, // 14 days
+  },
+  
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        maxAge: 14 * 24 * 60 * 60, // 14 days
+      },
+    },
   },
   
   pages: {
@@ -80,6 +95,14 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.landlordId = user.landlordId;
         token.tenantId = user.tenantId;
+        token.rememberMe = user.rememberMe;
+        
+        // Set token expiry - 14 days for remember me, 1 day otherwise
+        if (user.rememberMe) {
+          token.exp = Math.floor(Date.now() / 1000) + (14 * 24 * 60 * 60);
+        } else {
+          token.exp = Math.floor(Date.now() / 1000) + (24 * 60 * 60);
+        }
       }
       return token;
     },

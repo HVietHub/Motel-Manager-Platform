@@ -52,6 +52,18 @@ export async function PUT(
           landlordId,
         },
       },
+      include: {
+        tenant: {
+          include: {
+            user: true,
+          },
+        },
+        building: {
+          select: {
+            name: true,
+          },
+        },
+      },
     });
 
     if (!room) {
@@ -60,6 +72,10 @@ export async function PUT(
         { status: 404 }
       );
     }
+
+    // Check if price changed and room has tenant
+    const priceChanged = room.price !== price;
+    const hasTenant = room.tenant !== null;
 
     const updatedRoom = await prisma.room.update({
       where: { id: params.id },
@@ -80,6 +96,22 @@ export async function PUT(
         },
       },
     });
+
+    // Send notification if price changed and room has tenant
+    if (priceChanged && hasTenant && room.tenant) {
+      const oldPrice = room.price;
+      const newPrice = price;
+      const priceChange = newPrice - oldPrice;
+      const changeType = priceChange > 0 ? "tăng" : "giảm";
+      
+      await prisma.notification.create({
+        data: {
+          title: "Thông Báo Thay Đổi Giá Phòng",
+          message: `Giá phòng ${room.building.name} - Phòng ${room.roomNumber} đã ${changeType} từ ${oldPrice.toLocaleString('vi-VN')}đ thành ${newPrice.toLocaleString('vi-VN')}đ. Vui lòng liên hệ chủ nhà để biết thêm chi tiết.`,
+          tenantId: room.tenant.id,
+        },
+      });
+    }
 
     return NextResponse.json(updatedRoom);
   } catch (error) {

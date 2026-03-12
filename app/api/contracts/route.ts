@@ -60,7 +60,31 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(contracts);
+    // Calculate dynamic status based on dates
+    const now = new Date();
+    const contractsWithStatus = contracts.map(contract => {
+      let calculatedStatus = contract.status;
+      
+      if (contract.status !== "TERMINATED") {
+        const startDate = new Date(contract.startDate);
+        const endDate = new Date(contract.endDate);
+        
+        if (now < startDate) {
+          calculatedStatus = "PENDING"; // Not started yet
+        } else if (now > endDate) {
+          calculatedStatus = "EXPIRED";
+        } else {
+          calculatedStatus = "ACTIVE";
+        }
+      }
+      
+      return {
+        ...contract,
+        status: calculatedStatus
+      };
+    });
+
+    return NextResponse.json(contractsWithStatus);
   } catch (error) {
     console.error("Get contracts error:", error);
     return NextResponse.json(
@@ -126,6 +150,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Determine initial status based on start date
+    const now = new Date();
+    let initialStatus = "ACTIVE";
+    if (start > now) {
+      initialStatus = "PENDING";
+    } else if (end < now) {
+      initialStatus = "EXPIRED";
+    }
+
     const contract = await prisma.contract.create({
       data: {
         tenantId,
@@ -135,7 +168,7 @@ export async function POST(request: NextRequest) {
         rentAmount,
         depositAmount: depositAmount || 0,
         terms,
-        status: "ACTIVE",
+        status: initialStatus,
       },
       include: {
         tenant: {

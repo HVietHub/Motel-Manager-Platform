@@ -2,11 +2,25 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcryptjs";
 
+type InvoiceStatusSummary = "PAID" | "UNPAID" | "OVERDUE" | "NO_INVOICE";
+
+function isBeforeOrEqualCurrentPeriod(
+  invoiceYear: number,
+  invoiceMonth: number,
+  currentYear: number,
+  currentMonth: number
+) {
+  return invoiceYear < currentYear || (invoiceYear === currentYear && invoiceMonth <= currentMonth);
+}
+
 // GET all tenants for a landlord
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const landlordId = searchParams.get("landlordId");
+    const now = new Date();
+    const currentMonth = now.getMonth() + 1;
+    const currentYear = now.getFullYear();
 
     if (!landlordId) {
       return NextResponse.json(
@@ -40,11 +54,77 @@ export async function GET(request: NextRequest) {
             },
           },
         },
+        contracts: {
+          where: {
+            status: "ACTIVE",
+          },
+          orderBy: {
+            startDate: "desc",
+          },
+          take: 1,
+        },
+        invoices: {
+          where: {
+            OR: [
+              { year: { lt: currentYear } },
+              {
+                AND: [
+                  { year: currentYear },
+                  { month: { lte: currentMonth } },
+                ],
+              },
+            ],
+          },
+          select: {
+            id: true,
+            month: true,
+            year: true,
+            totalAmount: true,
+            status: true,
+          },
+          orderBy: [
+            { year: "desc" },
+            { month: "desc" },
+            { createdAt: "desc" },
+          ],
+        },
       },
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(tenants);
+    const tenantsWithPaymentSummary = tenants.map((tenant) => {
+      const relevantInvoices = tenant.invoices.filter((invoice) =>
+        isBeforeOrEqualCurrentPeriod(invoice.year, invoice.month, currentYear, currentMonth)
+      );
+      const currentInvoice = relevantInvoices.find(
+        (invoice) => invoice.year === currentYear && invoice.month === currentMonth
+      );
+      const overdueInvoices = relevantInvoices.filter(
+        (invoice) =>
+          invoice.status === "UNPAID" &&
+          (invoice.year < currentYear || invoice.month < currentMonth)
+      );
+      const paymentStatus: InvoiceStatusSummary = overdueInvoices.length > 0
+        ? "OVERDUE"
+        : currentInvoice?.status === "UNPAID"
+        ? "UNPAID"
+        : currentInvoice?.status === "PAID"
+        ? "PAID"
+        : "NO_INVOICE";
+
+      return {
+        ...tenant,
+        paymentSummary: {
+          status: paymentStatus,
+          unpaidInvoiceCount: relevantInvoices.filter((invoice) => invoice.status === "UNPAID").length,
+          overdueInvoiceCount: overdueInvoices.length,
+          currentMonth,
+          currentYear,
+        },
+      };
+    });
+
+    return NextResponse.json(tenantsWithPaymentSummary);
   } catch (error) {
     console.error("Get tenants error:", error);
     return NextResponse.json(

@@ -15,8 +15,10 @@ import {
   Menu,
   X,
   User,
+  MessageSquare,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -26,33 +28,26 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useSession, signOut } from "next-auth/react";
 
 const menuItems = [
-  { icon: Home, label: "Trang Chủ", href: "/tenant/dashboard" },
+  { icon: Home, label: "Dashboard", href: "/tenant/dashboard" },
   { icon: DoorOpen, label: "Phòng Của Tôi", href: "/tenant/room" },
   { icon: FileText, label: "Hợp Đồng", href: "/tenant/contracts" },
   { icon: Receipt, label: "Hóa Đơn", href: "/tenant/invoices" },
   { icon: Bell, label: "Thông Báo", href: "/tenant/notifications" },
   { icon: Wrench, label: "Bảo Trì", href: "/tenant/maintenance" },
+  { icon: MessageSquare, label: "Cộng Đồng", href: "/tenant/community" },
 ];
 
 export function TenantSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [userName, setUserName] = useState("Người Thuê");
   const [unreadCount, setUnreadCount] = useState(0);
 
   useEffect(() => {
-    const name = localStorage.getItem("userName");
-    if (name) {
-      setUserName(name);
-    }
-    
-    // Fetch unread notifications count
     fetchUnreadCount();
-    
-    // Poll for new notifications every 30 seconds
     const interval = setInterval(fetchUnreadCount, 30000);
     return () => clearInterval(interval);
   }, []);
@@ -73,34 +68,15 @@ export function TenantSidebar() {
     }
   };
 
-  const handleLogout = () => {
-    // Clear all user data from localStorage
-    localStorage.removeItem("user");
-    localStorage.removeItem("userId");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userRole");
-    localStorage.removeItem("landlordId");
-    localStorage.removeItem("tenantId");
-    router.push("/login");
-  };
-
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
-
   return (
     <>
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-50 flex items-center justify-between px-4">
-        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-          HomeLink
-        </h1>
+        <Link href="/tenant/dashboard">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer">
+            HouseSea
+          </h1>
+        </Link>
         <Button
           variant="ghost"
           size="icon"
@@ -119,85 +95,106 @@ export function TenantSidebar() {
       )}
 
       {/* Sidebar */}
-      <aside
+      <div
         className={cn(
-          "fixed top-0 left-0 h-screen w-64 bg-white border-r flex flex-col z-50 transition-transform duration-300",
-          "lg:translate-x-0",
-          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+          "fixed top-0 left-0 h-screen w-64 bg-white border-r flex flex-col transition-transform duration-300",
+          "lg:translate-x-0 lg:z-10 z-50",
+          isMobileMenuOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
-        {/* Logo */}
-        <div className="h-16 flex items-center justify-center border-b">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-            HomeLink
-          </h1>
+        {/* Header */}
+        <div className="p-6 hidden lg:block">
+          <Link href="/tenant/dashboard">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+              HouseSea
+            </h1>
+          </Link>
+          <p className="text-sm text-muted-foreground mt-1">
+            Dành cho Người Thuê
+          </p>
         </div>
+
+        <Separator className="hidden lg:block" />
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto p-4">
-          <ul className="space-y-2">
-            {menuItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href;
+        <nav className="flex-1 space-y-1 p-4 overflow-y-auto mt-16 lg:mt-0">
+          {menuItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = pathname === item.href || pathname?.startsWith(item.href + "/");
 
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => setIsMobileMenuOpen(false)}
-                    className={cn(
-                      "flex items-center gap-3 px-4 py-3 rounded-lg transition-colors relative",
-                      isActive
-                        ? "bg-primary text-primary-foreground"
-                        : "hover:bg-muted"
-                    )}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <span className="font-medium">{item.label}</span>
-                    {item.label === "Thông Báo" && unreadCount > 0 && (
-                      <span className="ml-auto bg-red-500 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                        {unreadCount > 9 ? "9+" : unreadCount}
-                      </span>
-                    )}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
+            return (
+              <Link key={item.href} href={item.href}>
+                <Button
+                  variant={isActive ? "secondary" : "ghost"}
+                  className={cn(
+                    "w-full justify-start gap-3 relative",
+                    isActive && "bg-secondary font-medium"
+                  )}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  <Icon className="h-5 w-5" />
+                  {item.label}
+                  {item.label === "Thông Báo" && unreadCount > 0 && (
+                    <span className="absolute top-2 right-2 h-2 w-2 bg-red-500 rounded-full"></span>
+                  )}
+                </Button>
+              </Link>
+            );
+          })}
         </nav>
-
-        {/* User Profile */}
-        <div className="p-4 border-t">
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                variant="ghost"
-                className="w-full justify-start gap-3 h-auto py-3"
-              >
-                <Avatar>
-                  <AvatarFallback>{getInitials(userName)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1 text-left">
-                  <p className="text-sm font-medium">{userName}</p>
-                  <p className="text-xs text-muted-foreground">Người Thuê</p>
-                </div>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56">
-              <DropdownMenuLabel>Tài Khoản</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => router.push("/tenant/profile")}>
-                <User className="mr-2 h-4 w-4" />
-                Thông Tin Cá Nhân
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                Đăng Xuất
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
-      </aside>
+      </div>
     </>
+  );
+}
+
+export function TenantTopBar() {
+  const router = useRouter();
+  const { data: session } = useSession();
+
+  const handleLogout = async () => {
+    await signOut({ redirect: false });
+    router.push("/login");
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return "NT";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  return (
+    <div className="h-16 border-b bg-background flex items-center justify-end px-6">
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button variant="ghost" className="gap-3 h-auto py-2">
+            <div className="flex flex-col items-end text-sm">
+              <span className="font-medium">{session?.user?.name || "Người Thuê"}</span>
+              <span className="text-xs text-muted-foreground">
+                {session?.user?.email || ""}
+              </span>
+            </div>
+            <Avatar>
+              <AvatarFallback>{session?.user?.name ? getInitials(session.user.name) : "NT"}</AvatarFallback>
+            </Avatar>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel>Tài Khoản</DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={() => router.push("/tenant/profile")}>
+            <User className="mr-2 h-4 w-4" />
+            Thông Tin Cá Nhân
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Đăng Xuất
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
   );
 }

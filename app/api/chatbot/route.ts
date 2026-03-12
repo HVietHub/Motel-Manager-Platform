@@ -6,15 +6,18 @@ import { prisma } from '@/lib/prisma';
 
 export async function POST(request: NextRequest) {
   try {
-    const { message } = await request.json();
+    const { message, forceGuest } = await request.json();
     if (!message) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 });
     }
 
-    const session = await getServerSession(authOptions);
-    
-    // Get user context if logged in
     let context: any = {};
+    // Landing page can force guest mode regardless of existing auth session.
+    const shouldUseGuestMode = Boolean(forceGuest);
+
+    const session = shouldUseGuestMode ? null : await getServerSession(authOptions);
+
+    // Get user context if logged in and guest mode is not forced
 
     if (session?.user) {
       context.role = session.user.role;

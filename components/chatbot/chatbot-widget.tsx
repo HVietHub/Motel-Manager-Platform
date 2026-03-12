@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
+import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -15,6 +16,7 @@ interface Message {
 
 export function ChatbotWidget() {
   const { data: session } = useSession();
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -22,12 +24,19 @@ export function ChatbotWidget() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const isLandingPage = !session?.user;
+  const isLandingRoute = pathname === "/";
 
   useEffect(() => {
-    if (session?.user?.name) {
-      setMessages([
-        { role: "bot", content: `${session.user.name} ơi, bạn đang nghĩ gì thế?` },
-      ]);
+    if (session?.user) {
+      if (session.user.name) {
+        setMessages([
+          { role: "bot", content: `${session.user.name} ơi, bạn đang nghĩ gì thế?` },
+        ]);
+      } else {
+        setMessages([
+          { role: "bot", content: "Xin chào! Tôi có thể giúp gì cho bạn?" },
+        ]);
+      }
     } else {
       setMessages([
         { role: "bot", content: "Xin chào! Tôi có thể giúp gì cho bạn?" },
@@ -55,7 +64,10 @@ export function ChatbotWidget() {
       const res = await fetch("/api/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({
+          message: userMessage,
+          forceGuest: isLandingRoute,
+        }),
       });
 
       const data = await res.json();

@@ -366,18 +366,34 @@ Chúng tôi là giải pháp toàn diện giúp chủ nhà và người thuê qu
         return 'Không có hóa đơn nào cần nhắc nhở.';
       }
 
-      // Tạo thông báo cho từng người thuê
+      // Gộp theo tenant để tránh spam nhiều thông báo cho cùng một người thuê.
+      const groupedByTenant = unpaidInvoices.reduce<Record<string, typeof unpaidInvoices>>((acc, invoice) => {
+        if (!acc[invoice.tenantId]) {
+          acc[invoice.tenantId] = [];
+        }
+        acc[invoice.tenantId].push(invoice);
+        return acc;
+      }, {});
+
       const notifications = await Promise.all(
-        unpaidInvoices.map((invoice) =>
-          prisma.notification.create({
+        Object.entries(groupedByTenant).map(([tenantId, invoices]) => {
+          const totalDebt = invoices.reduce((sum, inv) => sum + inv.totalAmount, 0);
+          const nearestDueInvoice = invoices
+            .filter((inv) => Boolean(inv.dueDate))
+            .sort((a, b) => (a.dueDate!.getTime() - b.dueDate!.getTime()))[0];
+
+          const dueText = nearestDueInvoice
+            ? this.formatDueDate(nearestDueInvoice.dueDate).text
+            : 'Chưa đặt hạn thanh toán';
+
+          return prisma.notification.create({
             data: {
-              tenantId: invoice.tenantId,
+              tenantId,
               title: 'Nhắc nhở thanh toán',
-              message: `Bạn có hóa đơn chưa thanh toán số tiền ${invoice.totalAmount.toLocaleString('vi-VN')}đ. Hạn thanh toán: ${this.formatDueDate(invoice.dueDate).text}. Vui lòng thanh toán sớm để tránh phát sinh phí.`,
-              type: 'PAYMENT',
+              message: `Bạn có ${invoices.length} hóa đơn chưa thanh toán với tổng số tiền ${totalDebt.toLocaleString('vi-VN')}đ. Hạn gần nhất: ${dueText}. Vui lòng thanh toán sớm để tránh phát sinh phí.`,
             },
-          })
-        )
+          });
+        })
       );
 
       return `Đã gửi ${notifications.length} thông báo nhắc nhở thanh toán thành công! ✅`;

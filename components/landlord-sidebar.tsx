@@ -15,6 +15,7 @@ import {
   LogOut,
   BarChart3,
   MessageSquare,
+  CreditCard,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -80,6 +81,11 @@ const menuItems = [
     title: "Báo Cáo & AI",
     href: "/landlord/reports",
     icon: BarChart3,
+  },
+  {
+    title: "Nâng Cấp Gói",
+    href: "/landlord/payment",
+    icon: CreditCard,
   },
 ];
 

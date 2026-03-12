@@ -57,7 +57,7 @@ export default function HomePage() {
       const response = await fetch('/api/chatbot', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: userMessage }),
+        body: JSON.stringify({ message: userMessage, forceGuest: true }),
       });
 
       const data = await response.json();
@@ -730,7 +730,7 @@ export default function HomePage() {
                   <div className="text-gray-500">/ tháng</div>
                 </div>
                 <ul className="space-y-4 mb-8">
-                  {["Không giới hạn tòa nhà", "Không giới hạn phòng", "Tích hợp API", "Quản lý đội nhóm", "Hỗ trợ 24/7"].map((item, index) => (
+                  {["Không giới hạn tòa nhà", "Không giới hạn phòng", "Lợi ích của các gói trước"].map((item, index) => (
                     <motion.li
                       key={index}
                       className="flex items-center gap-3"

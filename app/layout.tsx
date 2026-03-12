@@ -11,6 +11,9 @@ const inter = Inter({ subsets: ["latin", "vietnamese"] });
 export const metadata: Metadata = {
   title: "HouseSea - Nền Tảng Quản Lý Nhà Trọ Thông Minh",
   description: "Kết nối chủ nhà và người thuê - Quản lý nhà trọ dễ dàng, hiệu quả",
+  icons: {
+    icon: "/favicon.ico",
+  },
 };
 
 export default function RootLayout({

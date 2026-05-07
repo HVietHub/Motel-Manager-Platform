@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerLandlord, AuthService } from '@/lib/services/auth.service';
+import { registerLandlord, AuthService } from '@/lib/services/auth/auth.servicervice';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { z } from 'zod';
-import { validatePassword } from '@/lib/password-validation';
+import { validatePassword } from '@/lib/validation/password-validation';
 
 /**
  * Registration API Route

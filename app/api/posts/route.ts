@@ -1,44 +1,67 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { createPost, getPosts } from '@/lib/services/post.service'
-import { handleApiError, requireAuth } from '@/lib/api-error-handler'
+import { createPost, getPosts } from '@/lib/services/community/post.service'
+import { handleApiError, requireAuth } from '@/lib/errors/api-error-handler'
+import { prisma } from '@/lib/prisma'
+import { PlanTier, planHasFeature } from '@/lib/constants/plans'
 
 /**
- * GET /api/posts - Get posts with filters
- * 
- * Query parameters:
- * - page: number (default: 1)
- * - limit: number (default: 20, max: 100)
- * - authorId: string (optional)
- * - authorType: 'LANDLORD' | 'TENANT' (optional)
- * - search: string (optional)
- * 
- * Requirements: 8.1, 10.1, 10.2, 10.4
+ * Resolve the landlordId for the current session user.
+ * - LANDLORD → their own landlordId
+ * - TENANT   → the landlordId of the landlord they rent from
+ * Returns null if not resolvable (tenant not yet assigned).
+ */
+async function resolveLandlordId(userId: string, role: string): Promise<string | null> {
+  if (role === 'LANDLORD') {
+    const landlord = await prisma.landlord.findUnique({
+      where: { userId },
+      select: { id: true },
+    })
+    return landlord?.id ?? null
+  }
+
+  if (role === 'TENANT') {
+    const tenant = await prisma.tenant.findUnique({
+      where: { userId },
+      select: { landlordId: true },
+    })
+    // landlordId defaults to "" when tenant hasn't been assigned yet
+    const id = tenant?.landlordId
+    return id && id.trim() !== '' ? id : null
+  }
+
+  return null
+}
+
+/**
+ * GET /api/posts - Get posts scoped to the current user's landlord community
  */
 export async function GET(request: NextRequest) {
   try {
-    // Authentication check
     const session = await getServerSession(authOptions)
     const authError = requireAuth(session?.user?.id)
     if (authError) return authError
 
-    // Parse query parameters
+    const landlordId = await resolveLandlordId(session!.user.id, session!.user.role)
+    if (!landlordId) {
+      // Tenant not yet assigned to a landlord — return empty community gracefully
+      return NextResponse.json([])
+    }
+
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get('page') || '1')
     const limit = parseInt(searchParams.get('limit') || '20')
     const authorId = searchParams.get('authorId') || undefined
-    const authorType = searchParams.get('authorType') as 'LANDLORD' | 'TENANT' | undefined
     const search = searchParams.get('search') || undefined
 
-    // Get posts
     const posts = await getPosts({
       page,
       limit,
       authorId,
-      authorType,
       search,
-      currentUserId: session!.user.id
+      landlordId,
+      currentUserId: session!.user.id,
     })
 
     return NextResponse.json(posts)
@@ -48,29 +71,49 @@ export async function GET(request: NextRequest) {
 }
 
 /**
- * POST /api/posts - Create a new post
- * 
- * Body:
- * - content: string (required, 1-5000 characters)
- * - images: string[] (optional, max 10 images)
- * 
- * Requirements: 8.1, 10.1, 10.2, 10.3
+ * POST /api/posts - Create a post in the current user's landlord community
  */
 export async function POST(request: NextRequest) {
   try {
-    // Authentication check
     const session = await getServerSession(authOptions)
     const authError = requireAuth(session?.user?.id)
     if (authError) return authError
 
-    // Parse request body
+    const landlordId = await resolveLandlordId(session!.user.id, session!.user.role)
+    if (!landlordId) {
+      return NextResponse.json(
+        { error: 'Bạn chưa được gán vào nhà trọ nào. Vui lòng liên hệ chủ nhà.' },
+        { status: 403 }
+      )
+    }
+
+    // Plan gate for LANDLORD: communityPosts requires Starter+
+    if (session!.user.role === 'LANDLORD') {
+      const landlord = await (prisma.landlord.findUnique as any)({
+        where: { id: landlordId },
+        select: { plan: true },
+      })
+      const plan = (landlord?.plan as PlanTier) ?? PlanTier.FREE
+      if (!planHasFeature(plan, 'communityPosts')) {
+        return NextResponse.json(
+          {
+            error: 'PLAN_REQUIRED',
+            message: `Tính năng cộng đồng yêu cầu gói Starter trở lên. Gói hiện tại: ${plan}.`,
+            requiredPlan: PlanTier.STARTER,
+            currentPlan: plan,
+          },
+          { status: 403 }
+        )
+      }
+    }
+
     const body = await request.json()
     const { content, images } = body
 
-    // Create post
     const post = await createPost(session!.user.id, {
       content,
-      images
+      images,
+      landlordId,
     })
 
     return NextResponse.json(post, { status: 201 })

@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, Send, Users } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
 type Tenant = {
   id: string;

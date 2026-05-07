@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { analyticsService } from '@/lib/services/analytics.service'
-import { handleApiError } from '@/lib/api-error-handler'
+import { analyticsService } from '@/lib/services/analytics/analytics.service'
+import { handleApiError } from '@/lib/errors/api-error-handler'
 
 export async function GET(request: NextRequest) {
   try {

@@ -51,7 +51,9 @@ export function PostList({ initialPosts = [], currentUserId, filters, onEdit }: 
       const response = await fetch(`/api/posts?${params}`)
       if (!response.ok) throw new Error('Failed to fetch posts')
 
-      const newPosts = await response.json()
+      const data = await response.json()
+      // Guard: API might return error object instead of array
+      const newPosts: Post[] = Array.isArray(data) ? data : []
       
       if (reset) {
         setPosts(newPosts)

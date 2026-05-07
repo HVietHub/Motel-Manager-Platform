@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { likeService } from '@/lib/services/like.service'
-import { handleApiError, requireAuth } from '@/lib/api-error-handler'
+import { likeService } from '@/lib/services/community/like.service'
+import { handleApiError, requireAuth } from '@/lib/errors/api-error-handler'
 
 export async function POST(
   request: NextRequest,

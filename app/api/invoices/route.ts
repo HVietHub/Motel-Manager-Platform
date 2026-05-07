@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { invoiceAutoCalculationService } from "@/lib/services/invoice-auto-calculation.service";
+import { invoiceAutoCalculationService } from "@/lib/services/billing/invoice-auto-calculation.service";
 
 // GET all invoices for a landlord or tenant
 export async function GET(request: NextRequest) {

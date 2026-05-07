@@ -36,6 +36,7 @@ model Landlord {
   userCode  String     @unique // LL001, LL002, etc.
   phone     String
   address   String?
+  plan      String     @default("FREE") // FREE | STARTER | PRO | BUSINESS | ENTERPRISE
   user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
   buildings Building[]
   createdAt DateTime   @default(now())
@@ -199,6 +200,7 @@ model Post {
   id         String    @id @default(cuid())
   authorId   String
   authorType String    // 'LANDLORD' or 'TENANT'
+  landlordId String    @default("") // community scope — the landlord who owns this community
   content    String
   images     String    @default("[]") // JSON array of image URLs
   createdAt  DateTime  @default(now())
@@ -210,6 +212,7 @@ model Post {
   shares     Share[]
   
   @@index([authorId])
+  @@index([landlordId])
   @@index([createdAt])
 }
 

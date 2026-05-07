@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { getPost, updatePost, deletePost } from '@/lib/services/post.service'
-import { handleApiError, requireAuth } from '@/lib/api-error-handler'
+import { getPost, updatePost, deletePost } from '@/lib/services/community/post.service'
+import { handleApiError, requireAuth } from '@/lib/errors/api-error-handler'
 
 /**
  * GET /api/posts/[id] - Get a single post

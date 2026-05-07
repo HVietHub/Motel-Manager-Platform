@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import {
   Home,
   Building2,
@@ -114,9 +115,12 @@ export function LandlordSidebar() {
       {/* Header */}
       <div className="p-6">
         <Link href="/landlord/dashboard">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
-            HouseSea
-          </h1>
+          <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+            <Image src="/icon.webp" alt="HouseSea" width={32} height={32} className="rounded-lg" />
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              HouseSea
+            </h1>
+          </div>
         </Link>
         <p className="text-sm text-muted-foreground mt-1">
           Dành cho Chủ Nhà

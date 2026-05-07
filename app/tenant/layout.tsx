@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/shared/app-shell";
-import { TenantSidebar, TenantTopBar } from "@/components/tenant-sidebar";
+import { TenantSidebar, TenantTopBar } from "@/components/shared/tenant-sidebar";
 
 export default function TenantLayout({
   children,

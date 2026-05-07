@@ -13,7 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Receipt } from "lucide-react";
 import { toast } from "sonner";
-import { useTenantId } from "@/hooks/use-tenant-id";
+import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 type Invoice = {
   id: string;

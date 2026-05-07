@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DoorOpen, Building2, DollarSign, Coins } from "lucide-react";
 import { toast } from "sonner";
-import { useTenantId } from "@/hooks/use-tenant-id";
+import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 type RoomInfo = {
   roomNumber: string;

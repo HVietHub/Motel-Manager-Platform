@@ -1,20 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { analyticsService } from '@/lib/services/analytics.service'
-import { insightsGeneratorService } from '@/lib/services/insights-generator.service'
-import { dataAggregatorService } from '@/lib/services/data-aggregator.service'
-import { handleApiError } from '@/lib/api-error-handler'
+import { analyticsService } from '@/lib/services/analytics/analytics.service'
+import { insightsGeneratorService } from '@/lib/services/analytics/insights-generator.service'
+import { dataAggregatorService } from '@/lib/services/analytics/data-aggregator.service'
+import { handleApiError } from '@/lib/errors/api-error-handler'
+import { prisma } from '@/lib/prisma'
+import { PlanTier, planHasFeature } from '@/lib/constants/plans'
 
 export async function GET(request: NextRequest) {
   try {
-    // Authentication
     const session = await getServerSession(authOptions)
     if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    // Authorization
     if (session.user.role !== 'LANDLORD') {
       return NextResponse.json(
         { error: 'Forbidden. Only landlords can access analytics.' },
@@ -25,6 +25,25 @@ export async function GET(request: NextRequest) {
     const landlordId = session.user.landlordId
     if (!landlordId) {
       return NextResponse.json({ error: 'Landlord ID not found' }, { status: 404 })
+    }
+
+    // Plan gate: advanced analytics requires PRO+
+    const landlord = await (prisma.landlord.findUnique as any)({
+      where: { id: landlordId },
+      select: { plan: true },
+    })
+    const plan = (landlord?.plan as PlanTier) ?? PlanTier.FREE
+
+    if (!planHasFeature(plan, 'advancedAnalytics')) {
+      return NextResponse.json(
+        {
+          error: 'PLAN_REQUIRED',
+          message: `Tính năng phân tích nâng cao yêu cầu gói Pro trở lên. Gói hiện tại: ${plan}.`,
+          requiredPlan: PlanTier.PRO,
+          currentPlan: plan,
+        },
+        { status: 403 }
+      )
     }
 
     // Parse query parameters

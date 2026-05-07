@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, CreditCard, MapPin, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
-import { useTenantId } from "@/hooks/use-tenant-id";
+import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 export default function TenantProfilePage() {
   const tenantId = useTenantId();

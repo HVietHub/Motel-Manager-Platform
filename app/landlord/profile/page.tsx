@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { User, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 import { useSession } from "next-auth/react";
 
 export default function ProfilePage() {

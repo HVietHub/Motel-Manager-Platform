@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { billingService } from "@/lib/services/billing";
 
 // GET all buildings for a landlord
 export async function GET(request: NextRequest) {
@@ -64,6 +65,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Missing required fields" },
         { status: 400 }
+      );
+    }
+
+    // Check plan limits before creating
+    const planCheck = await billingService.canAddBuilding(landlordId);
+    if (!planCheck.allowed) {
+      return NextResponse.json(
+        { error: planCheck.reason },
+        { status: 403 }
       );
     }
 

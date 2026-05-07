@@ -1,308 +1,289 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
-import { toast } from "sonner";
 import {
-  Building2,
-  CheckCircle2,
-  Copy,
+  Check,
+  Minus,
+  Clock,
   CreditCard,
-  Gem,
-  Landmark,
-  QrCode,
-  ShieldCheck,
+  Building2,
+  Users,
+  LayoutGrid,
+  Lock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { PLAN_LIMITS, PlanTier } from "@/lib/constants/plans";
 
-const BANK_INFO = {
-  bankName: "MB Bank",
-  accountNumber: "970422000000001",
-  accountName: "CONG TY TNHH HOUSESEA",
+// ─── helpers ────────────────────────────────────────────────────────────────
+
+const formatCurrency = (amount: number) =>
+  amount === 0 ? "Miễn phí" : `${amount.toLocaleString("vi-VN")}đ / tháng`;
+
+const PLAN_META: Record<PlanTier, { label: string; highlight: boolean; dark: boolean }> = {
+  FREE:       { label: "Free",       highlight: false, dark: false },
+  STARTER:    { label: "Starter",    highlight: false, dark: false },
+  PRO:        { label: "Pro",        highlight: true,  dark: false },
+  BUSINESS:   { label: "Business",   highlight: false, dark: false },
+  ENTERPRISE: { label: "Enterprise", highlight: false, dark: true  },
 };
 
-type PlanKey = "BASIC" | "PREMIUM";
-type BillingCycle = "MONTHLY" | "YEARLY";
-
-const PLAN_CONFIG: Record<PlanKey, { title: string; monthlyPrice: number; features: string[] }> = {
-  BASIC: {
-    title: "Gói Cơ Bản",
-    monthlyPrice: 100000,
-    features: ["3-5 tòa nhà", "2-3 phòng mỗi tòa", "Hóa đơn tự động", "Báo cáo chi tiết"],
-  },
-  PREMIUM: {
-    title: "Gói Siêu Cấp",
-    monthlyPrice: 200000,
-    features: ["Không giới hạn tòa nhà", "Không giới hạn phòng", "Tích hợp API", "Hỗ trợ 24/7"],
-  },
+const FEATURE_LABELS: Record<keyof typeof PLAN_LIMITS.FREE.features, string> = {
+  autoInvoice:        "Tự động tạo hóa đơn",
+  emailNotifications: "Thông báo email tự động",
+  reports:            "Báo cáo doanh thu",
+  communityPosts:     "Cộng đồng người thuê",
+  apiAccess:          "Tích hợp API",
+  webhooks:           "Webhook sự kiện",
+  exportData:         "Export Excel / CSV",
+  advancedAnalytics:  "Analytics nâng cao",
+  aiChatbot:          "AI Chatbot thông minh",
+  aiPredictions:      "AI dự đoán & gợi ý giá",
+  multiUser:          "Multi-user & phân quyền",
+  whiteLabel:         "White-label thương hiệu",
 };
 
-const formatCurrency = (amount: number) => `${amount.toLocaleString("vi-VN")}đ`;
+// ─── component ───────────────────────────────────────────────────────────────
 
 export default function LandlordPaymentPage() {
   const { data: session } = useSession();
-  const [plan, setPlan] = useState<PlanKey>("BASIC");
-  const [cycle, setCycle] = useState<BillingCycle>("MONTHLY");
-  const [months, setMonths] = useState<number>(1);
+  const [currentPlan, setCurrentPlan] = useState<PlanTier | null>(null);
+  const [stats, setStats] = useState<{ totalBuildings: number; totalRooms: number } | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  const landlordCode = session?.user?.landlordId?.slice(-6).toUpperCase() || "HOUSESEA";
+  useEffect(() => {
+    const landlordId = session?.user?.landlordId;
+    if (!landlordId) return;
 
-  const pricing = useMemo(() => {
-    const selectedPlan = PLAN_CONFIG[plan];
-    const selectedMonths = cycle === "MONTHLY" ? 1 : 12;
-    const baseAmount = selectedPlan.monthlyPrice * selectedMonths * months;
-    const discountRate = cycle === "YEARLY" ? 0.1 : 0;
-    const discount = Math.round(baseAmount * discountRate);
-    const finalAmount = baseAmount - discount;
+    fetch(`/api/landlords/${landlordId}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setCurrentPlan((data.plan as PlanTier) ?? PlanTier.FREE);
+        setStats({
+          totalBuildings: data.stats?.totalBuildings ?? 0,
+          totalRooms: data.stats?.totalRooms ?? 0,
+        });
+      })
+      .catch(() => setCurrentPlan(PlanTier.FREE))
+      .finally(() => setLoading(false));
+  }, [session?.user?.landlordId]);
 
-    return {
-      selectedPlan,
-      selectedMonths,
-      totalMonths: selectedMonths * months,
-      baseAmount,
-      discount,
-      finalAmount,
-    };
-  }, [plan, cycle, months]);
-
-  const transferContent = useMemo(() => {
-    const cycleText = cycle === "YEARLY" ? "Y" : "M";
-    return `HS ${plan} ${cycleText}${months} ${landlordCode}`;
-  }, [cycle, landlordCode, months, plan]);
-
-  const qrSrc = useMemo(() => {
-    const addInfo = encodeURIComponent(transferContent);
-    const accountName = encodeURIComponent(BANK_INFO.accountName);
-    return `https://img.vietqr.io/image/MB-970422-compact2.png?amount=${pricing.finalAmount}&addInfo=${addInfo}&accountName=${accountName}`;
-  }, [pricing.finalAmount, transferContent]);
-
-  const copyText = async (value: string, label: string) => {
-    try {
-      await navigator.clipboard.writeText(value);
-      toast.success(`Đã copy ${label}`);
-    } catch {
-      toast.error("Không thể copy. Vui lòng thử lại.");
-    }
-  };
+  const plans = Object.values(PlanTier);
 
   return (
-    <div className="p-6 md:p-8 space-y-6 max-w-7xl mx-auto">
-      <div className="flex items-start justify-between gap-4 flex-wrap">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-            <CreditCard className="h-7 w-7 text-blue-600" />
-            Thanh Toán Gói Dịch Vụ
-          </h1>
-          <p className="text-muted-foreground mt-1">
-            Hỗ trợ chuyển khoản ngân hàng. Hệ thống sẽ xác nhận và kích hoạt gói sau khi đối soát.
-          </p>
-        </div>
-        <div className="rounded-lg border bg-blue-50/70 px-4 py-2 text-sm text-blue-700 inline-flex items-center gap-2">
-          <ShieldCheck className="h-4 w-4" />
-          Thanh toán an toàn qua tài khoản doanh nghiệp
-        </div>
+    <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
+
+      {/* ── Header ── */}
+      <div>
+        <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+          <CreditCard className="h-6 w-6 text-amber-500" strokeWidth={1.5} />
+          Nâng Cấp Gói Dịch Vụ
+        </h1>
+        <p className="text-muted-foreground mt-1 text-sm">
+          Chọn gói phù hợp để mở khóa thêm tính năng và giới hạn cao hơn.
+        </p>
       </div>
 
-      <div className="grid xl:grid-cols-3 gap-6">
-        <Card className="xl:col-span-2">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gem className="h-5 w-5 text-indigo-600" />
-              Chọn Gói Và Chu Kỳ
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            <div className="grid md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Gói dịch vụ</Label>
-                <Select value={plan} onValueChange={(value) => setPlan(value as PlanKey)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn gói" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="BASIC">Cơ Bản - 100.000đ/tháng</SelectItem>
-                    <SelectItem value="PREMIUM">Siêu Cấp - 200.000đ/tháng</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label>Chu kỳ thanh toán</Label>
-                <Select value={cycle} onValueChange={(value) => setCycle(value as BillingCycle)}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn chu kỳ" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="MONTHLY">Theo tháng</SelectItem>
-                    <SelectItem value="YEARLY">Theo năm (giảm 10%)</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <div className="space-y-2 max-w-xs">
-              <Label>Số chu kỳ muốn mua</Label>
-              <Input
-                type="number"
-                min={1}
-                value={months}
-                onChange={(e) => {
-                  const value = Number(e.target.value);
-                  setMonths(Number.isNaN(value) || value < 1 ? 1 : value);
-                }}
-              />
-              <p className="text-xs text-muted-foreground">
-                Ví dụ: chu kỳ năm + số chu kỳ 2 = thanh toán 24 tháng.
+      {/* ── Current plan status ── */}
+      <Card className="border-amber-200 bg-amber-50/40">
+        <CardContent className="p-5 flex flex-wrap items-center gap-8">
+          <div>
+            <p className="text-xs text-muted-foreground mb-0.5">Gói hiện tại</p>
+            {loading ? (
+              <Skeleton className="h-5 w-24 mt-1" />
+            ) : (
+              <p className="font-semibold text-amber-700 text-sm">
+                {currentPlan ? PLAN_META[currentPlan].label : "—"}
               </p>
-            </div>
+            )}
+          </div>
 
-            <div className="rounded-xl border p-4 bg-muted/30 space-y-2">
-              <p className="font-semibold">Tính năng bao gồm trong {pricing.selectedPlan.title}</p>
-              <ul className="space-y-1 text-sm">
-                {pricing.selectedPlan.features.map((feature) => (
-                  <li key={feature} className="flex items-center gap-2">
-                    <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                    {feature}
-                  </li>
-                ))}
-              </ul>
+          <div className="flex items-center gap-2">
+            <Building2 className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Tòa nhà</p>
+              {loading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : (
+                <p className="font-semibold text-sm">
+                  {stats?.totalBuildings ?? 0}
+                  {currentPlan && PLAN_LIMITS[currentPlan].maxBuildings !== -1
+                    ? ` / ${PLAN_LIMITS[currentPlan].maxBuildings}`
+                    : " / ∞"}
+                </p>
+              )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Tổng Thanh Toán</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Gói đã chọn</span>
-              <span className="font-medium">{pricing.selectedPlan.title}</span>
+          <div className="flex items-center gap-2">
+            <Users className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+            <div>
+              <p className="text-xs text-muted-foreground mb-0.5">Phòng</p>
+              {loading ? (
+                <Skeleton className="h-5 w-16" />
+              ) : (
+                <p className="font-semibold text-sm">
+                  {stats?.totalRooms ?? 0}
+                  {currentPlan && PLAN_LIMITS[currentPlan].maxRooms !== -1
+                    ? ` / ${PLAN_LIMITS[currentPlan].maxRooms}`
+                    : " / ∞"}
+                </p>
+              )}
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Thời hạn</span>
-              <span className="font-medium">{pricing.totalMonths} tháng</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Tạm tính</span>
-              <span>{formatCurrency(pricing.baseAmount)}</span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Giảm giá</span>
-              <span className="text-emerald-600">-{formatCurrency(pricing.discount)}</span>
-            </div>
-            <div className="h-px bg-border" />
-            <div className="flex justify-between text-base">
-              <span className="font-semibold">Cần chuyển khoản</span>
-              <span className="font-bold text-blue-700">{formatCurrency(pricing.finalAmount)}</span>
-            </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* ── Plan comparison ── */}
+      <div>
+        <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
+          <LayoutGrid className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
+          So Sánh Các Gói
+        </h2>
+
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+          {plans.map((tier) => {
+            const meta = PLAN_META[tier];
+            const limits = PLAN_LIMITS[tier];
+            const isCurrent = currentPlan === tier;
+            const isEnterprise = tier === PlanTier.ENTERPRISE;
+
+            return (
+              <Card
+                key={tier}
+                className={[
+                  "relative flex flex-col",
+                  meta.highlight  ? "border-orange-400 shadow-md ring-1 ring-orange-300" : "",
+                  isCurrent && !meta.highlight ? "border-amber-400 shadow-sm" : "",
+                  isEnterprise    ? "bg-gray-900 border-gray-700" : "",
+                ].join(" ")}
+              >
+                {/* badge */}
+                {(meta.highlight || isCurrent) && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
+                    <span
+                      className={[
+                        "text-white text-[11px] font-semibold px-3 py-0.5 rounded-full whitespace-nowrap",
+                        meta.highlight ? "bg-orange-500" : "bg-amber-500",
+                      ].join(" ")}
+                    >
+                      {meta.highlight ? "Phổ biến nhất" : "Gói hiện tại"}
+                    </span>
+                  </div>
+                )}
+
+                <CardHeader className="pb-2 pt-6 px-4">
+                  <p className={`text-xs font-semibold uppercase tracking-widest mb-1 ${isEnterprise ? "text-gray-400" : "text-muted-foreground"}`}>
+                    {meta.label}
+                  </p>
+                  <p className={`text-xl font-bold leading-tight ${isEnterprise ? "text-amber-400" : "text-gray-900"}`}>
+                    {isEnterprise ? "999.000đ+" : formatCurrency(limits.priceVnd)}
+                  </p>
+                  <p className={`text-[11px] mt-1 ${isEnterprise ? "text-gray-500" : "text-muted-foreground"}`}>
+                    {limits.maxBuildings === -1 ? "Không giới hạn nhà" : `≤ ${limits.maxBuildings} nhà`}
+                    {" · "}
+                    {limits.maxRooms === -1 ? "∞ phòng" : `${limits.maxRooms} phòng`}
+                  </p>
+                </CardHeader>
+
+                <CardContent className="flex-1 space-y-1.5 pb-5 px-4">
+                  <div className={`h-px mb-3 ${isEnterprise ? "bg-gray-700" : "bg-border"}`} />
+                  {(Object.keys(FEATURE_LABELS) as Array<keyof typeof FEATURE_LABELS>).map((key) => {
+                    const enabled = limits.features[key];
+                    return (
+                      <div key={key} className="flex items-center gap-2 text-[12px]">
+                        {enabled ? (
+                          <Check
+                            className={`h-3.5 w-3.5 shrink-0 ${isEnterprise ? "text-amber-400" : "text-emerald-500"}`}
+                            strokeWidth={2}
+                          />
+                        ) : (
+                          <Minus
+                            className="h-3.5 w-3.5 shrink-0 text-gray-300"
+                            strokeWidth={1.5}
+                          />
+                        )}
+                        <span className={enabled
+                          ? isEnterprise ? "text-gray-200" : "text-gray-700"
+                          : "text-gray-400"
+                        }>
+                          {FEATURE_LABELS[key]}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+
+        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
+          * Enterprise: 999.000đ/tháng (15–30 nhà) · 1.499.000đ (31–50 nhà) · 1.999.000đ (51–100 nhà) · Liên hệ cho trên 100 nhà.
+          Thanh toán theo năm giảm 10%.
+        </p>
       </div>
 
+      {/* ── Coming Soon ── */}
+      <Card className="border-dashed border-2 border-amber-200 bg-amber-50/20">
+        <CardContent className="py-12 flex flex-col items-center text-center gap-3">
+          <div className="h-12 w-12 rounded-xl border border-amber-200 flex items-center justify-center">
+            <Lock className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Clock className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.5} />
+            <Badge variant="outline" className="text-amber-700 border-amber-300 text-xs font-semibold">
+              Coming Soon
+            </Badge>
+          </div>
+
+          <div>
+            <h3 className="text-lg font-semibold text-gray-800 mb-1">Thanh Toán Đang Được Phát Triển</h3>
+            <p className="text-sm text-muted-foreground max-w-md">
+              Hệ thống thanh toán trực tuyến đang được xây dựng. Sẽ hỗ trợ chuyển khoản ngân hàng,
+              ví điện tử (Momo, ZaloPay, VNPay) và thẻ tín dụng.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap justify-center gap-2 mt-1 text-xs text-muted-foreground">
+            {["Chuyển khoản ngân hàng", "Momo · ZaloPay · VNPay", "Thẻ tín dụng / ghi nợ"].map((m) => (
+              <span key={m} className="bg-white border rounded-full px-3 py-1">{m}</span>
+            ))}
+          </div>
+
+          <p className="text-xs text-muted-foreground">
+            Cần hỗ trợ ngay? Liên hệ{" "}
+            <a href="mailto:support@housesea.vn" className="text-amber-600 underline underline-offset-2">
+              support@housesea.vn
+            </a>
+          </p>
+        </CardContent>
+      </Card>
+
+      {/* ── Policy ── */}
       <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Landmark className="h-5 w-5 text-blue-600" />
-            Thanh Toán Chuyển Khoản
-          </CardTitle>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-sm font-semibold">Chính Sách Gói Dịch Vụ</CardTitle>
         </CardHeader>
-        <CardContent className="grid lg:grid-cols-[1fr_280px] gap-6">
-          <div className="space-y-4">
-            <div className="rounded-lg border p-4 space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <p className="text-sm text-muted-foreground">Ngân hàng</p>
-                  <p className="font-semibold">{BANK_INFO.bankName}</p>
-                </div>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-3">
-                <div className="rounded-md bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Số tài khoản</p>
-                  <p className="font-semibold tracking-wide">{BANK_INFO.accountNumber}</p>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="px-0 h-7 mt-1"
-                    onClick={() => copyText(BANK_INFO.accountNumber, "số tài khoản")}
-                  >
-                    <Copy className="h-3.5 w-3.5 mr-1" /> Copy
-                  </Button>
-                </div>
-
-                <div className="rounded-md bg-muted/50 p-3">
-                  <p className="text-xs text-muted-foreground">Chủ tài khoản</p>
-                  <p className="font-semibold">{BANK_INFO.accountName}</p>
-                </div>
-              </div>
-
-              <div className="rounded-md bg-blue-50 border border-blue-200 p-3">
-                <p className="text-xs text-blue-700">Nội dung chuyển khoản (bắt buộc)</p>
-                <p className="font-semibold text-blue-900 tracking-wide mt-1">{transferContent}</p>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="px-0 h-7 mt-1 text-blue-700"
-                  onClick={() => copyText(transferContent, "nội dung chuyển khoản")}
-                >
-                  <Copy className="h-3.5 w-3.5 mr-1" /> Copy nội dung
-                </Button>
-              </div>
-
-              <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800">
-                Sau khi chuyển khoản, vui lòng giữ lại biên lai. Hệ thống sẽ kích hoạt gói trong vòng 5-15 phút trong giờ hành chính.
-              </div>
-            </div>
-
-            <div className="flex gap-3 flex-wrap">
-              <Button onClick={() => copyText(String(pricing.finalAmount), "số tiền")}>Copy số tiền</Button>
-              <Button variant="outline" onClick={() => toast.success("Đã ghi nhận yêu cầu, chúng tôi sẽ kiểm tra giao dịch sớm nhất.")}>
-                Tôi Đã Chuyển Khoản
-              </Button>
-            </div>
+        <CardContent className="grid sm:grid-cols-3 gap-4 text-sm text-muted-foreground">
+          <div>
+            <p className="font-medium text-foreground mb-1 text-xs uppercase tracking-wide">Nâng cấp</p>
+            <p className="text-xs">Có hiệu lực ngay lập tức. Tính phí theo tỷ lệ thời gian còn lại trong tháng. Giữ nguyên dữ liệu.</p>
           </div>
-
-          <div className="rounded-xl border p-4 bg-muted/20 h-fit">
-            <p className="font-semibold mb-3 inline-flex items-center gap-2">
-              <QrCode className="h-4 w-4" />
-              Quét Mã QR
-            </p>
-            <img
-              src={qrSrc}
-              alt="QR chuyển khoản"
-              className="w-full rounded-md border bg-white"
-            />
-            <p className="text-xs text-muted-foreground mt-3 leading-relaxed">
-              Mã QR đã chứa sẵn số tiền và nội dung chuyển khoản của gói bạn đang chọn.
-            </p>
+          <div>
+            <p className="font-medium text-foreground mb-1 text-xs uppercase tracking-wide">Hạ cấp</p>
+            <p className="text-xs">Có hiệu lực từ kỳ thanh toán tiếp theo. Dữ liệu vượt giới hạn bị ẩn, không xóa.</p>
+          </div>
+          <div>
+            <p className="font-medium text-foreground mb-1 text-xs uppercase tracking-wide">Hủy gói</p>
+            <p className="text-xs">Hủy bất kỳ lúc nào. Dữ liệu giữ 30 ngày, sau đó tài khoản về gói Free.</p>
           </div>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardContent className="p-4 text-sm text-muted-foreground">
-          <p className="font-medium text-foreground mb-1">Câu hỏi thường gặp</p>
-          <p>1) Khi nào gói được kích hoạt: sau khi đối soát giao dịch thành công.</p>
-          <p>2) Cần hỗ trợ nhanh: email support@housesea.vn hoặc hotline 0900 000 000.</p>
-          <p>3) Xuất hóa đơn VAT: liên hệ bộ phận CSKH sau khi thanh toán.</p>
-        </CardContent>
-      </Card>
-
-      <div className="text-xs text-muted-foreground inline-flex items-center gap-2">
-        <Building2 className="h-3.5 w-3.5" />
-        Mã tham chiếu tài khoản: {landlordCode}
-      </div>
     </div>
   );
 }

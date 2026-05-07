@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { DoorOpen, Receipt, Bell, FileText } from "lucide-react";
 import { toast } from "sonner";
-import { useTenantId } from "@/hooks/use-tenant-id";
+import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 type DashboardStats = {
   room: {

@@ -31,7 +31,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, Trash2, DoorOpen } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
 type RoomStatus = "AVAILABLE" | "OCCUPIED" | "MAINTENANCE";
 

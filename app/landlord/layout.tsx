@@ -1,5 +1,5 @@
 import { AppShell } from "@/components/shared/app-shell";
-import { LandlordSidebar, LandlordTopBar } from "@/components/landlord-sidebar";
+import { LandlordSidebar, LandlordTopBar } from "@/components/shared/landlord-sidebar";
 import { PricingUpsellPopup } from "@/components/upsell/pricing-upsell-popup";
 
 export default function LandlordLayout({

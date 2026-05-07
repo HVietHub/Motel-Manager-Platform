@@ -1,7 +1,7 @@
 import NextAuth, { NextAuthOptions } from 'next-auth';
 import CredentialsProvider from 'next-auth/providers/credentials';
 import { prisma } from '@/lib/prisma';
-import { verifyPassword } from '@/lib/services/auth.service';
+import { verifyPassword } from '@/lib/services/auth/auth.service';
 
 /**
  * NextAuth Configuration

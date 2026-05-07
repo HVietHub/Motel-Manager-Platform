@@ -3,7 +3,7 @@
 import { useState, useRef, ChangeEvent } from 'react'
 import { Button } from '@/components/ui/button'
 import { Image, X, Upload, Loader2 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn } from '@/lib/utils/utils'
 
 interface ImageUploaderProps {
   images: string[]

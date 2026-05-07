@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 import { Plus, Search, Pencil, Trash2, Building2 } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 import { useRouter } from "next/navigation";
 
 type Building = {

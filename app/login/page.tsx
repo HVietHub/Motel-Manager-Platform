@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import { motion } from "framer-motion";
 
 type UserRole = "LANDLORD" | "TENANT";
@@ -100,7 +100,7 @@ export default function LoginPage() {
 
         {/* Background photo */}
         <Image
-          src="/images/login-hero.png"
+          src="/images/login-hero.webp"
           alt="Modern apartment building"
           fill
           className="object-cover"

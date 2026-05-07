@@ -13,7 +13,7 @@ import {
   ArrowLeft, Building2, Zap, Droplets, Plus, Trash2, Receipt, Save,
 } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
 type Surcharge = {
   name: string;

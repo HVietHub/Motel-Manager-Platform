@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { billingService } from "@/lib/services/billing";
 
 // GET all rooms for a landlord
 export async function GET(request: NextRequest) {
@@ -90,6 +91,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(
         { error: "Building not found or unauthorized" },
         { status: 404 }
+      );
+    }
+
+    // Check plan limits before creating
+    const planCheck = await billingService.canAddRoom(landlordId);
+    if (!planCheck.allowed) {
+      return NextResponse.json(
+        { error: planCheck.reason },
+        { status: 403 }
       );
     }
 

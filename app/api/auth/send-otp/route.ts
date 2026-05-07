@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { sendVerificationEmail } from '@/lib/mail';
+import { sendVerificationEmail } from '@/lib/services/communication/mail.service';
 import { z } from 'zod';
 
 const sendOtpSchema = z.object({

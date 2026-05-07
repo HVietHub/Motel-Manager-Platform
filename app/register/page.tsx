@@ -9,8 +9,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Building2, User, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, Send, Check } from "lucide-react";
 import { toast } from "sonner";
-import { cn } from "@/lib/utils";
-import { validatePassword, getPasswordStrength } from "@/lib/password-validation";
+import { cn } from "@/lib/utils/utils";
+import { validatePassword, getPasswordStrength } from "@/lib/validation/password-validation";
 import { motion, AnimatePresence } from "framer-motion";
 
 type UserRole = "LANDLORD" | "TENANT";
@@ -522,7 +522,7 @@ export default function RegisterPage() {
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
         <Image
-          src="/images/register-hero.png"
+          src="/images/register-hero.webp"
           alt="Landlord and tenant interaction"
           fill
           className="object-cover opacity-60"

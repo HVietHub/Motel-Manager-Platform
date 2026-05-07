@@ -1,7 +1,7 @@
 "use client";
  
 import { useEffect, useState } from "react";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, DoorOpen, Users, TrendingUp, TrendingDown, LayoutDashboard, Calendar, ArrowRight } from "lucide-react";
@@ -9,7 +9,7 @@ import { toast } from "sonner";
 import { motion } from "framer-motion";
 import { useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 
 export default function DashboardPage() {
   const landlordId = useLandlordId();

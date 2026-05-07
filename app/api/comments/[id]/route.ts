@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { commentService } from '@/lib/services/comment.service'
-import { handleApiError, requireAuth } from '@/lib/api-error-handler'
+import { commentService } from '@/lib/services/community/comment.service'
+import { handleApiError, requireAuth } from '@/lib/errors/api-error-handler'
 
 export async function PATCH(
   request: NextRequest,

@@ -31,7 +31,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Pencil, CheckCircle, Receipt } from "lucide-react";
 import { toast } from "sonner";
-import { useLandlordId } from "@/hooks/use-landlord-id";
+import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
 type Invoice = {
   id: string;

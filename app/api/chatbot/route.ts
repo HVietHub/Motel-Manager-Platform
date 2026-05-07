@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import { chatbotService } from '@/lib/services/chatbot.service';
+import { chatbotService } from '@/lib/services/communication/chatbot.service';
 import { prisma } from '@/lib/prisma';
+import { PlanTier, planHasFeature } from '@/lib/constants/plans';
 
 export async function POST(request: NextRequest) {
   try {
@@ -12,17 +13,34 @@ export async function POST(request: NextRequest) {
     }
 
     let context: any = {};
-    // Landing page can force guest mode regardless of existing auth session.
     const shouldUseGuestMode = Boolean(forceGuest);
-
     const session = shouldUseGuestMode ? null : await getServerSession(authOptions);
-
-    // Get user context if logged in and guest mode is not forced
 
     if (session?.user) {
       context.role = session.user.role;
 
-      if (session.user.role === 'TENANT' && session.user.tenantId) {
+      if (session.user.role === 'LANDLORD' && session.user.landlordId) {
+        // Plan gate: AI Chatbot requires BUSINESS+
+        const landlord = await (prisma.landlord.findUnique as any)({
+          where: { id: session.user.landlordId },
+          select: { plan: true },
+        });
+        const plan = (landlord?.plan as PlanTier) ?? PlanTier.FREE;
+
+        if (!planHasFeature(plan, 'aiChatbot')) {
+          return NextResponse.json(
+            {
+              error: 'PLAN_REQUIRED',
+              message: `Tính năng AI Chatbot yêu cầu gói Business trở lên. Gói hiện tại của bạn: ${plan}.`,
+              requiredPlan: PlanTier.BUSINESS,
+              currentPlan: plan,
+            },
+            { status: 403 }
+          );
+        }
+
+        context.landlordId = session.user.landlordId;
+      } else if (session.user.role === 'TENANT' && session.user.tenantId) {
         const tenant = await prisma.tenant.findUnique({
           where: { id: session.user.tenantId },
           include: {
@@ -33,8 +51,6 @@ export async function POST(request: NextRequest) {
         });
         context.tenant = tenant;
         context.tenantId = session.user.tenantId;
-      } else if (session.user.role === 'LANDLORD' && session.user.landlordId) {
-        context.landlordId = session.user.landlordId;
       }
     }
 
@@ -42,10 +58,12 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ response }, { status: 200 });
   } catch (error: any) {
     console.error('Chatbot API error:', error);
-    console.error('Error stack:', error.stack);
-    return NextResponse.json({ 
-      error: 'Đã xảy ra lỗi khi xử lý yêu cầu',
-      details: process.env.NODE_ENV === 'development' ? error.message : undefined
-    }, { status: 500 });
+    return NextResponse.json(
+      {
+        error: 'Đã xảy ra lỗi khi xử lý yêu cầu',
+        details: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      },
+      { status: 500 }
+    );
   }
 }

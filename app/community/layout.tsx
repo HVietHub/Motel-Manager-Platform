@@ -2,8 +2,8 @@ import { getServerSession } from "next-auth";
 import { redirect } from "next/navigation";
 import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { AppShell } from "@/components/shared/app-shell";
-import { LandlordSidebar, LandlordTopBar } from "@/components/landlord-sidebar";
-import { TenantSidebar, TenantTopBar } from "@/components/tenant-sidebar";
+import { LandlordSidebar, LandlordTopBar } from "@/components/shared/landlord-sidebar";
+import { TenantSidebar, TenantTopBar } from "@/components/shared/tenant-sidebar";
 
 /**
  * Community layout — shared by /community/[id] post detail pages.

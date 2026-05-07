@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
-import { cn } from "@/lib/utils";
+import { cn } from "@/lib/utils/utils";
 import {
   Home,
   DoorOpen,
@@ -73,9 +74,12 @@ export function TenantSidebar() {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-50 flex items-center justify-between px-4">
         <Link href="/tenant/dashboard">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer">
-            HouseSea
-          </h1>
+          <div className="flex items-center gap-2 cursor-pointer">
+            <Image src="/icon.webp" alt="HouseSea" width={28} height={28} className="rounded-lg" />
+            <h1 className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+              HouseSea
+            </h1>
+          </div>
         </Link>
         <Button
           variant="ghost"
@@ -105,9 +109,12 @@ export function TenantSidebar() {
         {/* Header */}
         <div className="p-6 hidden lg:block">
           <Link href="/tenant/dashboard">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
-              HouseSea
-            </h1>
+            <div className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity">
+              <Image src="/icon.webp" alt="HouseSea" width={32} height={32} className="rounded-lg" />
+              <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
+                HouseSea
+              </h1>
+            </div>
           </Link>
           <p className="text-sm text-muted-foreground mt-1">
             Dành cho Người Thuê

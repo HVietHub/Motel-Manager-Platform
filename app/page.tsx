@@ -80,7 +80,7 @@ export default function HomePage() {
     }
   };
   return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-gray-50 to-stone-50 overflow-hidden">
       {/* Header */}
       <motion.header
         className="border-b bg-white/80 backdrop-blur-sm sticky top-0 z-50"
@@ -93,7 +93,7 @@ export default function HomePage() {
             className="flex items-center gap-2"
             whileHover={{ scale: 1.02 }}
           >
-            <Building2 className="h-8 w-8 text-primary" />
+            <Image src="/icon.webp" alt="HouseSea" width={32} height={32} className="rounded-lg" />
             <span className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent">
               HouseSea
             </span>
@@ -131,7 +131,7 @@ export default function HomePage() {
             </Link>
             <Link href="/register">
               <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-blue-700 hover:to-indigo-700">
+                <Button className="bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
                   Đăng Ký Miễn Phí
                 </Button>
               </motion.div>
@@ -193,7 +193,7 @@ export default function HomePage() {
             >
               <Link href="/register">
                 <GlowPulse>
-                  <Button size="lg" className="text-lg px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-blue-700 hover:to-indigo-700">
+                  <Button size="lg" className="text-lg px-8 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600">
                     Bắt Đầu Miễn Phí
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -250,7 +250,7 @@ export default function HomePage() {
             <div className="absolute -inset-4 bg-gradient-to-r from-amber-400 to-orange-400 rounded-3xl opacity-20" style={{ filter: 'blur(24px)' }} />
             <Floating duration={4} distance={10}>
               <Image
-                src="/images/hero-building.jpg"
+                src="/images/hero-building.webp"
                 alt="Modern apartment building"
                 width={800}
                 height={600}
@@ -386,7 +386,7 @@ export default function HomePage() {
               <div className="relative">
                 <Floating duration={5} distance={8}>
                   <Image
-                    src="/images/apartment-interior.jpg"
+                    src="/images/apartment-interior.webp"
                     alt="Beautiful apartment interior"
                     width={800}
                     height={600}
@@ -627,31 +627,40 @@ export default function HomePage() {
             </p>
           </FadeInUp>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          {/* Row 1: Free + Starter + Pro */}
+          <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto mb-8">
             {/* Free Plan */}
             <ScaleIn delay={0}>
-              <HoverCard className="bg-white p-8 rounded-2xl border-2 border-gray-200 h-full">
+              <HoverCard className="bg-white p-8 rounded-2xl border-2 border-gray-200 h-full flex flex-col">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold mb-2">Miễn Phí</h3>
+                  <div className="inline-block bg-gray-100 text-gray-600 text-xs font-semibold px-3 py-1 rounded-full mb-3">Dùng thử</div>
+                  <h3 className="text-2xl font-bold mb-2">Free</h3>
                   <div className="text-4xl font-bold text-gray-900">0đ</div>
                   <div className="text-gray-500">/ tháng</div>
+                  <p className="text-sm text-gray-500 mt-2">1 nhà · tối đa 4 phòng</p>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  {["Tối đa 1 tòa nhà", "2-3 phòng", "Quản lý hợp đồng cơ bản", "Hóa đơn thủ công"].map((item, index) => (
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Quản lý hợp đồng cơ bản",
+                    "Tạo và quản lý hóa đơn thủ công",
+                    "Quản lý thông tin người thuê",
+                    "Quản lý phòng trống / đã thuê",
+                    "Ghi chú và theo dõi thanh toán",
+                  ].map((item, index) => (
                     <motion.li
                       key={index}
-                      className="flex items-center gap-3"
+                      className="flex items-center gap-3 text-sm"
                       initial={{ opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.08 }}
                       viewport={{ once: true }}
                     >
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <CheckCircle className="h-4 w-4 text-green-500 shrink-0" />
                       <span>{item}</span>
                     </motion.li>
                   ))}
                 </ul>
-                <Link href="/register" className="block">
+                <Link href="/register" className="block mt-auto">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button variant="outline" className="w-full" size="lg">
                       Dùng Thử Ngay
@@ -661,41 +670,95 @@ export default function HomePage() {
               </HoverCard>
             </ScaleIn>
 
-            {/* Pro Plan */}
+            {/* Starter Plan */}
             <ScaleIn delay={0.1}>
+              <HoverCard className="bg-white p-8 rounded-2xl border-2 border-amber-200 h-full flex flex-col">
+                <div className="text-center mb-8">
+                  <div className="inline-block bg-amber-100 text-amber-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">Mới bắt đầu</div>
+                  <h3 className="text-2xl font-bold mb-2">Starter</h3>
+                  <div className="text-4xl font-bold text-gray-900">99.000đ</div>
+                  <div className="text-gray-500">/ tháng</div>
+                  <p className="text-sm text-gray-500 mt-2">2 nhà · tối đa 20 phòng</p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Tất cả tính năng Free",
+                    "Báo cáo doanh thu theo tháng",
+                    "Báo cáo tình trạng phòng & công nợ",
+                    "Cộng đồng người thuê",
+                    "Đăng bài & bình luận thông báo",
+                    "Thông báo qua email tự động",
+                    "Hỗ trợ ưu tiên qua email",
+                  ].map((item, index) => (
+                    <motion.li
+                      key={index}
+                      className="flex items-center gap-3 text-sm"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.08 }}
+                      viewport={{ once: true }}
+                    >
+                      <CheckCircle className="h-4 w-4 text-amber-500 shrink-0" />
+                      <span>{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+                <Link href="/register" className="block mt-auto">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button variant="outline" className="w-full border-amber-400 text-amber-700 hover:bg-amber-50" size="lg">
+                      Bắt Đầu Ngay
+                    </Button>
+                  </motion.div>
+                </Link>
+              </HoverCard>
+            </ScaleIn>
+
+            {/* Pro Plan */}
+            <ScaleIn delay={0.2}>
               <motion.div
-                className="bg-gradient-to-br from-amber-500 to-orange-500 p-8 rounded-2xl text-white shadow-2xl relative h-full"
+                className="bg-gradient-to-br from-amber-500 to-orange-500 p-8 rounded-2xl text-white shadow-2xl relative h-full flex flex-col"
                 whileHover={{ scale: 1.02 }}
                 initial={{ scale: 1.05 }}
               >
                 <motion.div
-                  className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-400 to-pink-500 px-4 py-1 rounded-full text-sm font-semibold"
+                  className="absolute -top-4 left-1/2 -translate-x-1/2 bg-gradient-to-r from-orange-400 to-pink-500 px-4 py-1 rounded-full text-sm font-semibold whitespace-nowrap"
                   animate={{ y: [0, -3, 0] }}
                   transition={{ duration: 2, repeat: Infinity }}
                 >
                   Phổ Biến Nhất
                 </motion.div>
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold mb-2">Cơ Bản</h3>
-                  <div className="text-4xl font-bold">100.000đ</div>
-                  <div className="text-blue-100">/ tháng</div>
+                  <div className="inline-block bg-white/20 text-white text-xs font-semibold px-3 py-1 rounded-full mb-3">Chuyên nghiệp</div>
+                  <h3 className="text-2xl font-bold mb-2">Pro</h3>
+                  <div className="text-4xl font-bold">249.000đ</div>
+                  <div className="text-amber-100">/ tháng</div>
+                  <p className="text-sm text-amber-100 mt-2">5 nhà · tối đa 50 phòng</p>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  {["3-5 tòa nhà", "2-3 phòng mỗi tòa", "Hóa đơn tự động", "Báo cáo chi tiết", "Hỗ trợ ưu tiên"].map((item, index) => (
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Tất cả tính năng Starter",
+                    "Tự động tạo & gửi hóa đơn",
+                    "Email nhắc nhở thanh toán",
+                    "Export Excel / CSV",
+                    "Báo cáo phân tích & biểu đồ",
+                    "Tích hợp API & Webhook",
+                    "Quản lý bảo trì nâng cao",
+                    "Chat support giờ hành chính",
+                  ].map((item, index) => (
                     <motion.li
                       key={index}
-                      className="flex items-center gap-3"
+                      className="flex items-center gap-3 text-sm"
                       initial={{ opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.08 }}
                       viewport={{ once: true }}
                     >
-                      <CheckCircle className="h-5 w-5 text-white" />
+                      <CheckCircle className="h-4 w-4 text-white shrink-0" />
                       <span>{item}</span>
                     </motion.li>
                   ))}
                 </ul>
-                <Link href="/register" className="block">
+                <Link href="/register" className="block mt-auto">
                   <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
                     <Button className="w-full bg-white text-amber-700 hover:bg-amber-50" size="lg">
                       Bắt Đầu Ngay
@@ -704,32 +767,92 @@ export default function HomePage() {
                 </Link>
               </motion.div>
             </ScaleIn>
+          </div>
 
-            {/* Enterprise Plan */}
-            <ScaleIn delay={0.2}>
-              <HoverCard className="bg-white p-8 rounded-2xl border-2 border-gray-200 h-full">
+          {/* Row 2: Business + Enterprise */}
+          <div className="grid md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+            {/* Business Plan */}
+            <ScaleIn delay={0.3}>
+              <HoverCard className="bg-white p-8 rounded-2xl border-2 border-purple-200 h-full flex flex-col">
                 <div className="text-center mb-8">
-                  <h3 className="text-2xl font-bold mb-2">Siêu Cấp</h3>
-                  <div className="text-4xl font-bold text-gray-900">200.000đ</div>
+                  <div className="inline-block bg-purple-100 text-purple-700 text-xs font-semibold px-3 py-1 rounded-full mb-3">Doanh nghiệp</div>
+                  <h3 className="text-2xl font-bold mb-2">Business</h3>
+                  <div className="text-4xl font-bold text-gray-900">599.000đ</div>
                   <div className="text-gray-500">/ tháng</div>
+                  <p className="text-sm text-gray-500 mt-2">15 nhà · tối đa 150 phòng</p>
                 </div>
-                <ul className="space-y-4 mb-8">
-                  {["Không giới hạn tòa nhà", "Không giới hạn phòng", "Lợi ích của các gói trước"].map((item, index) => (
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Tất cả tính năng Pro",
+                    "AI Chatbot thông minh",
+                    "Hỗ trợ đa ngôn ngữ",
+                    "Tích hợp Messenger & Zalo",
+                    "Analytics hành vi người thuê",
+                    "Dashboard tùy chỉnh",
+                    "Báo cáo email hàng tuần",
+                    "Multi-user & phân quyền",
+                    "Hỗ trợ 6 ngày/tuần (8h–20h)",
+                  ].map((item, index) => (
                     <motion.li
                       key={index}
-                      className="flex items-center gap-3"
+                      className="flex items-center gap-3 text-sm"
                       initial={{ opacity: 0, x: -10 }}
                       whileInView={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.1 }}
+                      transition={{ delay: index * 0.07 }}
                       viewport={{ once: true }}
                     >
-                      <CheckCircle className="h-5 w-5 text-green-500" />
+                      <CheckCircle className="h-4 w-4 text-purple-500 shrink-0" />
                       <span>{item}</span>
                     </motion.li>
                   ))}
                 </ul>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button variant="outline" className="w-full" size="lg">
+                <Link href="/register" className="block mt-auto">
+                  <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Button variant="outline" className="w-full border-purple-400 text-purple-700 hover:bg-purple-50" size="lg">
+                      Bắt Đầu Ngay
+                    </Button>
+                  </motion.div>
+                </Link>
+              </HoverCard>
+            </ScaleIn>
+
+            {/* Enterprise Plan */}
+            <ScaleIn delay={0.4}>
+              <HoverCard className="bg-gray-900 p-8 rounded-2xl border-2 border-gray-700 h-full flex flex-col text-white">
+                <div className="text-center mb-8">
+                  <div className="inline-block bg-white/10 text-gray-300 text-xs font-semibold px-3 py-1 rounded-full mb-3">Chuỗi nhà trọ</div>
+                  <h3 className="text-2xl font-bold mb-2">Enterprise</h3>
+                  <div className="text-4xl font-bold">999.000đ+</div>
+                  <div className="text-gray-400">/ tháng</div>
+                  <p className="text-sm text-gray-400 mt-2">Không giới hạn nhà & phòng</p>
+                </div>
+                <ul className="space-y-3 mb-8 flex-1">
+                  {[
+                    "Tất cả tính năng Business",
+                    "AI dự đoán tỷ lệ lấp đầy & doanh thu",
+                    "Gợi ý giá phòng tối ưu",
+                    "Phát hiện rủi ro thanh toán",
+                    "Hỗ trợ 24/7 · Hotline riêng",
+                    "Account manager riêng",
+                    "White-label thương hiệu riêng",
+                    "Tích hợp hệ thống kế toán",
+                    "SLA uptime 99.9%",
+                  ].map((item, index) => (
+                    <motion.li
+                      key={index}
+                      className="flex items-center gap-3 text-sm"
+                      initial={{ opacity: 0, x: -10 }}
+                      whileInView={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.07 }}
+                      viewport={{ once: true }}
+                    >
+                      <CheckCircle className="h-4 w-4 text-amber-400 shrink-0" />
+                      <span className="text-gray-200">{item}</span>
+                    </motion.li>
+                  ))}
+                </ul>
+                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} className="mt-auto">
+                  <Button className="w-full bg-gradient-to-r from-amber-500 to-orange-500 text-white hover:from-amber-600 hover:to-orange-600 border-0" size="lg">
                     Liên Hệ Tư Vấn
                   </Button>
                 </motion.div>
@@ -851,24 +974,24 @@ export default function HomePage() {
       <section className="container mx-auto px-4 py-20 text-center">
         <ScaleIn>
           <motion.div
-            className="max-w-3xl mx-auto bg-gradient-to-r from-amber-500 to-orange-500 rounded-3xl p-12 text-white relative overflow-hidden"
+            className="max-w-3xl mx-auto bg-gradient-to-br from-amber-600 via-orange-600 to-orange-700 rounded-3xl p-12 text-white relative overflow-hidden shadow-2xl"
             whileHover={{ scale: 1.02 }}
           >
             {/* Background decorative elements */}
-            <div className="absolute top-0 left-0 w-40 h-40 bg-white/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute bottom-0 right-0 w-60 h-60 bg-white/10 rounded-full translate-x-1/2 translate-y-1/2" />
+            <div className="absolute top-0 left-0 w-40 h-40 bg-black/10 rounded-full -translate-x-1/2 -translate-y-1/2" />
+            <div className="absolute bottom-0 right-0 w-60 h-60 bg-black/10 rounded-full translate-x-1/2 translate-y-1/2" />
 
             <h2 className="text-4xl font-bold mb-6 relative z-10">
               Sẵn Sàng Bắt Đầu?
             </h2>
-            <p className="text-xl text-amber-100 mb-8 relative z-10">
+            <p className="text-lg text-orange-100 mb-8 relative z-10">
               Đăng ký ngay hôm nay và trải nghiệm quản lý nhà trọ hiện đại.
               Miễn phí 30 ngày, không cần thẻ tín dụng!
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 relative z-10">
               <Link href="/register">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" className="text-lg px-12 bg-white text-amber-700 hover:bg-amber-50">
+                  <Button size="lg" className="text-lg px-12 bg-white text-orange-700 hover:bg-orange-50 font-semibold shadow-md">
                     Đăng Ký Miễn Phí
                     <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
@@ -876,7 +999,7 @@ export default function HomePage() {
               </Link>
               <Link href="/login">
                 <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
-                  <Button size="lg" variant="outline" className="text-lg px-8 border-white text-white hover:bg-white/10">
+                  <Button size="lg" variant="outline" className="text-lg px-8 border-white/70 text-white bg-white/15 hover:bg-white/25 backdrop-blur-sm">
                     Đã Có Tài Khoản?
                   </Button>
                 </motion.div>
@@ -901,7 +1024,7 @@ export default function HomePage() {
                   className="flex items-center gap-2 mb-4"
                   whileHover={{ scale: 1.02 }}
                 >
-                  <Building2 className="h-8 w-8 text-amber-400" />
+                  <Image src="/icon.webp" alt="HouseSea" width={32} height={32} className="rounded-lg" />
                   <span className="text-2xl font-bold">HouseSea</span>
                 </motion.div>
                 <p className="text-gray-400">

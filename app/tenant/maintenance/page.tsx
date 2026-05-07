@@ -23,7 +23,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Plus, Wrench } from "lucide-react";
 import { toast } from "sonner";
-import { useTenantId } from "@/hooks/use-tenant-id";
+import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 type MaintenanceStatus = "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED";
 type Priority = "LOW" | "MEDIUM" | "HIGH";

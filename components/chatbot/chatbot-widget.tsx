@@ -4,9 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import { useSession } from "next-auth/react";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { X, Send, Bot, Sparkles, Loader2 } from "lucide-react";
+import { X, Send, Loader2, Sparkles } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Message {
@@ -27,34 +26,20 @@ export function ChatbotWidget() {
   const isLandingRoute = pathname === "/";
 
   useEffect(() => {
-    if (session?.user) {
-      if (session.user.name) {
-        setMessages([
-          { role: "bot", content: `${session.user.name} ơi, bạn đang nghĩ gì thế?` },
-        ]);
-      } else {
-        setMessages([
-          { role: "bot", content: "Xin chào! Tôi có thể giúp gì cho bạn?" },
-        ]);
-      }
-    } else {
-      setMessages([
-        { role: "bot", content: "Xin chào! Tôi có thể giúp gì cho bạn?" },
-      ]);
-    }
+    setMessages([{
+      role: "bot",
+      content: session?.user?.name
+        ? `${session.user.name} ơi, bạn đang nghĩ gì thế?`
+        : "Xin chào! Tôi có thể giúp gì cho bạn?",
+    }]);
   }, [session]);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
-
   useEffect(() => {
-    scrollToBottom();
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isLoading]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
-
     const userMessage = input.trim();
     setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMessage }]);
@@ -64,285 +49,208 @@ export function ChatbotWidget() {
       const res = await fetch("/api/chatbot", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          message: userMessage,
-          forceGuest: isLandingRoute,
-        }),
+        body: JSON.stringify({ message: userMessage, forceGuest: isLandingRoute }),
       });
-
       const data = await res.json();
-      if (res.ok) {
-        setMessages((prev) => [...prev, { role: "bot", content: data.response }]);
-      } else {
-        setMessages((prev) => [
-          ...prev,
-          { role: "bot", content: "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại." },
-        ]);
-      }
-    } catch (error) {
-      setMessages((prev) => [
-        ...prev,
-        { role: "bot", content: "Không thể kết nối. Vui lòng thử lại sau." },
-      ]);
+      setMessages((prev) => [...prev, {
+        role: "bot",
+        content: res.ok ? data.response : "Xin lỗi, đã có lỗi xảy ra. Vui lòng thử lại.",
+      }]);
+    } catch {
+      setMessages((prev) => [...prev, {
+        role: "bot",
+        content: "Không thể kết nối. Vui lòng thử lại sau.",
+      }]);
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleQuickQuestion = (question: string) => {
-    setInput(question);
-  };
+  const quickQuestions = isLandingPage
+    ? ["Về chúng tôi?", "Thông tin về các gói?"]
+    : session?.user?.role === "TENANT"
+    ? ["Thông báo mới?", "Cần đóng tiền?", "Hợp đồng?"]
+    : ["Phòng trống?", "Chưa đóng tiền?", "Gửi nhắc nhở"];
 
   return (
     <>
-      {/* Floating Button */}
+      {/* ── Floating button ──────────────────────────────────────── */}
       <AnimatePresence>
         {!isOpen && (
           <motion.div
-            initial={{ scale: 0, opacity: 0, y: 20 }}
+            initial={{ scale: 0, opacity: 0, y: 16 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
-            exit={{ scale: 0, opacity: 0, y: 20 }}
-            transition={{ type: "spring", stiffness: 260, damping: 20 }}
-            className="fixed bottom-6 right-6 z-50 flex items-center justify-center w-16 h-16"
+            exit={{ scale: 0, opacity: 0, y: 16 }}
+            transition={{ type: "spring", stiffness: 280, damping: 22 }}
+            className="fixed bottom-6 right-6 z-50"
           >
-            {/* Ripple Effect Ring */}
+            {/* Pulse ring */}
             <motion.div
-              animate={{
-                boxShadow: [
-                  "0px 0px 0px 0px rgba(139, 92, 246, 0.4)",
-                  "0px 0px 0px 20px rgba(139, 92, 246, 0)",
-                ],
-              }}
-              transition={{
-                duration: 2,
-                repeat: Infinity,
-                ease: "easeInOut"
-              }}
-              className="absolute inset-0 rounded-full"
+              className="absolute inset-0 rounded-full bg-[#fdb549]/30"
+              animate={{ scale: [1, 1.5, 1], opacity: [0.5, 0, 0.5] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
-            <Button
+            <button
               onClick={() => setIsOpen(true)}
-              className="h-16 w-16 rounded-full shadow-2xl bg-gradient-to-tr from-blue-600 via-violet-600 to-fuchsia-600 hover:shadow-[0_0_20px_rgba(139,92,246,0.6)] border-0 p-0 relative overflow-hidden flex items-center justify-center group"
-              size="icon"
+              className="relative h-14 w-14 rounded-full bg-[#1f2116] hover:bg-[#31361b] shadow-xl flex items-center justify-center transition-colors duration-200 border border-[#fdb549]/20"
+              aria-label="Mở trợ lý AI"
             >
-              <div className="absolute inset-0 bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
+              {/* Icon: logo image */}
+              <img
+                src="/icon.webp"
+                alt="HouseSea AI"
+                width={28}
+                height={28}
+                className="rounded-md"
+              />
+              {/* Sparkle badge */}
               <motion.div
-                animate={{ rotate: [-3, 3, -3], y: [0, -2, 0] }}
-                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
-                className="relative flex items-center justify-center h-full w-full z-10"
+                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-[#fdb549] flex items-center justify-center shadow-sm"
+                animate={{ scale: [1, 1.15, 1] }}
+                transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               >
-                <Bot className="h-8 w-8 text-white drop-shadow-md" />
-                <motion.div
-                  animate={{ scale: [1, 1.4, 1], opacity: [0.3, 1, 0.3] }}
-                  transition={{ duration: 2, repeat: Infinity, ease: "easeInOut", delay: 1 }}
-                  className="absolute top-3 right-3"
-                >
-                  <Sparkles className="h-3 w-3 text-yellow-300 drop-shadow-sm" />
-                </motion.div>
+                <Sparkles className="h-2.5 w-2.5 text-[#1f2116]" strokeWidth={2.5} />
               </motion.div>
-            </Button>
+            </button>
           </motion.div>
         )}
       </AnimatePresence>
 
-      {/* Chat Window */}
+      {/* ── Chat window ──────────────────────────────────────────── */}
       <AnimatePresence>
         {isOpen && (
           <motion.div
-            initial={{ opacity: 0, y: 20, scale: 0.95 }}
+            initial={{ opacity: 0, y: 16, scale: 0.96 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: 20, scale: 0.95 }}
+            exit={{ opacity: 0, y: 16, scale: 0.96 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             className="fixed bottom-6 right-6 z-50 origin-bottom-right"
           >
-            <Card className="w-[380px] sm:w-[400px] h-[580px] shadow-[0_10px_40px_-10px_rgba(0,0,0,0.3)] border-muted/60 flex flex-col overflow-hidden rounded-2xl bg-background/95 backdrop-blur-sm">
-              <CardHeader className="flex flex-row items-center justify-between pb-3 bg-gradient-to-r from-blue-600/10 via-violet-600/10 to-transparent border-b">
+            <div className="w-[360px] sm:w-[380px] h-[560px] rounded-2xl overflow-hidden shadow-2xl border border-[#e2e0d8] flex flex-col bg-[#fafaf8]">
+
+              {/* Header */}
+              <div className="flex items-center justify-between px-4 py-3 bg-[#1f2116] border-b border-[#31361b]">
                 <div className="flex items-center gap-3">
-                  <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-blue-600 to-violet-600 flex items-center justify-center shadow-md relative overflow-hidden">
-                    <motion.div
-                      animate={{ rotate: 360 }}
-                      transition={{ duration: 8, repeat: Infinity, ease: "linear" }}
-                      className="absolute inset-[-50%] bg-[conic-gradient(transparent,rgba(255,255,255,0.3),transparent)]"
-                    />
-                    <Bot className="h-5 w-5 text-white relative z-10" />
+                  {/* Logo avatar */}
+                  <div className="h-8 w-8 rounded-lg overflow-hidden flex-shrink-0 border border-[#fdb549]/30">
+                    <img src="/icon.webp" alt="HouseSea AI" width={32} height={32} className="object-cover" />
                   </div>
                   <div>
-                    <CardTitle className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-violet-600">Trợ Lý AI</CardTitle>
-                    <p className="text-xs text-muted-foreground flex items-center gap-1">
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                    <p className="text-sm font-semibold text-white leading-none">Trợ Lý AI</p>
+                    <p className="text-[11px] text-white/50 mt-0.5 flex items-center gap-1.5">
+                      <span className="relative flex h-1.5 w-1.5">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#8b9c38] opacity-75" />
+                        <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-[#8b9c38]" />
                       </span>
                       Trực tuyến
                     </p>
                   </div>
                 </div>
-                <Button variant="ghost" size="icon" onClick={() => setIsOpen(false)} className="rounded-full hover:bg-muted/80 h-8 w-8">
+                <button
+                  onClick={() => setIsOpen(false)}
+                  className="h-7 w-7 rounded-full flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+                  aria-label="Đóng"
+                >
                   <X className="h-4 w-4" />
-                </Button>
-              </CardHeader>
+                </button>
+              </div>
 
-              <CardContent className="flex-1 flex flex-col p-0 overflow-hidden relative">
-                {/* Background Grid Pattern */}
-                <div className="absolute inset-0 bg-grid-black/[0.02] dark:bg-grid-white/[0.02] bg-[size:20px_20px] pointer-events-none" />
-
-                {/* Messages */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 min-h-0 z-10 scroll-smooth">
-                  {messages.map((msg, idx) => (
-                    <motion.div
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      key={idx}
-                      className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                    >
-                      {msg.role === "bot" && (
-                        <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-blue-500 to-violet-500 flex items-center justify-center mr-2 flex-shrink-0 mt-1 shadow-sm">
-                          <Bot className="h-3.5 w-3.5 text-white" />
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-[78%] rounded-2xl px-4 py-2.5 shadow-sm text-sm ${msg.role === "user"
-                            ? "bg-gradient-to-br from-blue-600 to-violet-600 text-white rounded-tr-none ml-auto"
-                            : "bg-background border shadow-sm text-foreground rounded-tl-none"
-                          }`}
-                      >
-                        <p className="whitespace-pre-wrap leading-relaxed">{msg.content}</p>
-                      </div>
-                    </motion.div>
-                  ))}
-                  {isLoading && (
-                    <motion.div
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      className="flex justify-start"
-                    >
-                      <div className="h-7 w-7 rounded-full bg-gradient-to-tr from-blue-500 to-violet-500 flex items-center justify-center mr-2 flex-shrink-0 mt-1 shadow-sm">
-                        <Bot className="h-3.5 w-3.5 text-white" />
-                      </div>
-                      <div className="bg-background border rounded-2xl rounded-tl-none px-4 py-2.5 shadow-sm flex items-center gap-1.5 h-[44px]">
-                        <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0 }} className="h-1.5 w-1.5 bg-violet-500 rounded-full" />
-                        <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.2 }} className="h-1.5 w-1.5 bg-violet-500 rounded-full" />
-                        <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ repeat: Infinity, duration: 1.4, delay: 0.4 }} className="h-1.5 w-1.5 bg-violet-500 rounded-full" />
-                      </div>
-                    </motion.div>
-                  )}
-                  <div ref={messagesEndRef} className="h-1" />
-                </div>
-
-                {/* Quick Questions */}
-                {!isLoading && (
+              {/* Messages */}
+              <div className="flex-1 overflow-y-auto p-4 space-y-3 min-h-0">
+                {messages.map((msg, idx) => (
                   <motion.div
-                    initial={{ opacity: 0, y: 10 }}
+                    key={idx}
+                    initial={{ opacity: 0, y: 8 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.3 }}
-                    className="px-4 pb-3 z-10"
+                    className={`flex gap-2 ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                      <Sparkles className="h-3 w-3 text-amber-500" /> Gợi ý
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {isLandingPage ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Về chúng tôi?")}
-                          >
-                            Về chúng tôi?
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Thông tin về các gói?")}
-                          >
-                            Thông tin về các gói?
-                          </Button>
-                        </>
-                      ) : session?.user?.role === 'TENANT' ? (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Kiểm tra thông báo mới")}
-                          >
-                            Thông báo mới?
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Các khoản cần đóng?")}
-                          >
-                            Cần đóng tiền?
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Thông tin hợp đồng của tôi?")}
-                          >
-                            Hợp đồng?
-                          </Button>
-                        </>
-                      ) : (
-                        <>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Tổng số phòng còn trống?")}
-                          >
-                            Phòng trống?
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Còn ai chưa đóng tiền?")}
-                          >
-                            Chưa đóng tiền?
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs bg-background/50 hover:bg-violet-500/10 hover:text-violet-600 border-border/50 rounded-full h-8 transition-all"
-                            onClick={() => handleQuickQuestion("Gửi thông báo đóng tiền thông minh")}
-                          >
-                            Gửi nhắc nhở
-                          </Button>
-                        </>
-                      )}
+                    {msg.role === "bot" && (
+                      <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 mt-1 border border-[#e2e0d8]">
+                        <img src="/icon.webp" alt="AI" width={24} height={24} className="object-cover" />
+                      </div>
+                    )}
+                    <div
+                      className={`max-w-[78%] rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                        msg.role === "user"
+                          ? "bg-[#1f2116] text-white rounded-tr-none"
+                          : "bg-white border border-[#e2e0d8] text-[#1f2116] rounded-tl-none shadow-sm"
+                      }`}
+                    >
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  </motion.div>
+                ))}
+
+                {/* Typing indicator */}
+                {isLoading && (
+                  <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="flex gap-2 justify-start"
+                  >
+                    <div className="h-6 w-6 rounded-md overflow-hidden flex-shrink-0 mt-1 border border-[#e2e0d8]">
+                      <img src="/icon.webp" alt="AI" width={24} height={24} className="object-cover" />
+                    </div>
+                    <div className="bg-white border border-[#e2e0d8] rounded-2xl rounded-tl-none px-4 py-3 shadow-sm flex items-center gap-1.5">
+                      {[0, 0.2, 0.4].map((delay, i) => (
+                        <motion.span
+                          key={i}
+                          className="h-1.5 w-1.5 rounded-full bg-[#fdb549]"
+                          animate={{ opacity: [0.3, 1, 0.3] }}
+                          transition={{ repeat: Infinity, duration: 1.2, delay }}
+                        />
+                      ))}
                     </div>
                   </motion.div>
                 )}
+                <div ref={messagesEndRef} className="h-1" />
+              </div>
 
-                {/* Input */}
-                <div className="p-3 border-t bg-background/80 backdrop-blur-md z-10 flex-shrink-0">
-                  <div className="flex gap-2 items-center relative">
-                    <Input
-                      value={input}
-                      onChange={(e) => setInput(e.target.value)}
-                      onKeyPress={(e) => e.key === "Enter" && sendMessage()}
-                      placeholder="Hỏi AI bất cứ điều gì..."
-                      disabled={isLoading}
-                      className="rounded-full pr-12 bg-muted/50 border-transparent hover:border-border focus-visible:ring-violet-500/30 h-10 shadow-inner"
-                    />
-                    <Button
-                      onClick={sendMessage}
-                      disabled={isLoading || !input.trim()}
-                      size="icon"
-                      className="absolute right-1 h-8 w-8 rounded-full bg-gradient-to-tr from-blue-600 to-violet-600 text-white shadow-md transition-all hover:scale-105 hover:shadow-lg disabled:opacity-50 disabled:hover:scale-100 disabled:shadow-none"
-                    >
-                      {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-3.5 w-3.5 ml-0.5" />}
-                    </Button>
+              {/* Quick questions */}
+              {!isLoading && (
+                <div className="px-4 pb-2">
+                  <p className="text-[10px] font-semibold text-[#94a3b8] uppercase tracking-wider mb-1.5 flex items-center gap-1">
+                    <Sparkles className="h-2.5 w-2.5 text-[#fdb549]" /> Gợi ý
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {quickQuestions.map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => setInput(q)}
+                        className="text-xs px-3 py-1.5 rounded-full border border-[#e2e0d8] bg-white text-[#64748b] hover:border-[#fdb549] hover:text-[#1f2116] transition-colors"
+                      >
+                        {q}
+                      </button>
+                    ))}
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              )}
+
+              {/* Input */}
+              <div className="p-3 border-t border-[#e2e0d8] bg-white flex-shrink-0">
+                <div className="flex gap-2 items-center">
+                  <Input
+                    value={input}
+                    onChange={(e) => setInput(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && sendMessage()}
+                    placeholder="Hỏi AI bất cứ điều gì..."
+                    disabled={isLoading}
+                    className="h-9 rounded-full bg-[#f8f7f4] border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-sm text-[#1f2116] placeholder:text-[#94a3b8]"
+                  />
+                  <Button
+                    onClick={sendMessage}
+                    disabled={isLoading || !input.trim()}
+                    size="icon"
+                    className="h-9 w-9 rounded-full bg-[#fdb549] hover:bg-[#ed7307] text-[#1f2116] border-0 shadow-sm flex-shrink-0 transition-colors disabled:opacity-40"
+                  >
+                    {isLoading
+                      ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      : <Send className="h-3.5 w-3.5 ml-0.5" />
+                    }
+                  </Button>
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </AnimatePresence>

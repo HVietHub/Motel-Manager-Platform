@@ -73,7 +73,7 @@ export function TenantSidebar() {
       {/* Mobile Header */}
       <div className="lg:hidden fixed top-0 left-0 right-0 h-16 bg-white border-b z-50 flex items-center justify-between px-4">
         <Link href="/tenant/dashboard">
-          <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer">
+          <h1 className="text-xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer">
             HouseSea
           </h1>
         </Link>
@@ -105,7 +105,7 @@ export function TenantSidebar() {
         {/* Header */}
         <div className="p-6 hidden lg:block">
           <Link href="/tenant/dashboard">
-            <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+            <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
               HouseSea
             </h1>
           </Link>

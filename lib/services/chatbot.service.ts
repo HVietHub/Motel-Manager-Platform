@@ -138,7 +138,7 @@ export class ChatbotService {
         const depositAmount = activeContract.depositAmount || 0;
 
         let response = `📄 Thông tin hợp đồng của bạn:\n\n`;
-        response += `🏠 Phòng: ${activeContract.room?.roomNumber || activeContract.room?.name || 'N/A'}\n`;
+        response += `🏠 Phòng: ${activeContract.room?.roomNumber || 'N/A'}\n`;
         response += `🏢 Tòa nhà: ${activeContract.room?.building?.name || 'N/A'}\n`;
         response += `💰 Giá thuê: ${rentAmount.toLocaleString('vi-VN')}đ/tháng\n`;
         response += `💵 Tiền cọc: ${depositAmount.toLocaleString('vi-VN')}đ\n`;

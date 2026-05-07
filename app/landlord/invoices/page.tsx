@@ -82,7 +82,10 @@ export default function InvoicesPage() {
     tenantId: "",
     month: "",
     year: "",
+    rentAmount: "",
     electricityUsage: "",
+    electricityAmount: "",
+    waterAmount: "",
     serviceAmount: "",
     otherAmount: "",
   });
@@ -204,7 +207,10 @@ export default function InvoicesPage() {
         tenantId: "",
         month: "",
         year: "",
+        rentAmount: "",
         electricityUsage: "",
+        electricityAmount: "",
+        waterAmount: "",
         serviceAmount: "",
         otherAmount: "",
       });
@@ -247,6 +253,7 @@ export default function InvoicesPage() {
         month: "",
         year: "",
         rentAmount: "",
+        electricityUsage: "",
         electricityAmount: "",
         waterAmount: "",
         serviceAmount: "",
@@ -491,9 +498,9 @@ export default function InvoicesPage() {
                       <SelectValue placeholder="Năm" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="2024">2024</SelectItem>
-                      <SelectItem value="2025">2025</SelectItem>
-                      <SelectItem value="2026">2026</SelectItem>
+                      {Array.from({ length: 3 }, (_, i) => new Date().getFullYear() - 1 + i).map((y) => (
+                        <SelectItem key={y} value={y.toString()}>{y}</SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>

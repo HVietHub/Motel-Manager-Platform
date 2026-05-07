@@ -1,12 +1,19 @@
 "use client";
 
 import { motion, useInView, useAnimation, Variants, useReducedMotion } from "framer-motion";
-import { useRef, useEffect, ReactNode, useMemo } from "react";
+import { useRef, useEffect, useState, ReactNode, useMemo } from "react";
 
-// Check for reduced motion preference
+// Check for reduced motion preference - safe for SSR
 function useOptimizedAnimation() {
     const prefersReducedMotion = useReducedMotion();
-    return prefersReducedMotion;
+    const [isMounted, setIsMounted] = useState(false);
+
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // Return false on server / before hydration to ensure consistent SSR output
+    return isMounted ? prefersReducedMotion : false;
 }
 
 // Optimized spring transition for smoother animations
@@ -327,7 +334,7 @@ export function GlowPulse({ children, className = "" }: GlowPulseProps) {
         >
             {!prefersReducedMotion && (
                 <div
-                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-400 to-indigo-400 opacity-30 animate-pulse-soft"
+                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-amber-400 to-orange-400 opacity-30 animate-pulse-soft"
                     style={{ filter: "blur(12px)" }}
                 />
             )}

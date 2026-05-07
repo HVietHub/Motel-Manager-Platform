@@ -1,14 +1,13 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  output: 'standalone',
   reactCompiler: true,
   images: {
     remotePatterns: [
+      // VietQR payment QR code generation service
       {
         protocol: 'https',
-        hostname: 'images.unsplash.com',
+        hostname: 'img.vietqr.io',
       },
     ],
   },

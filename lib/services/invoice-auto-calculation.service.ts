@@ -56,7 +56,14 @@ export class InvoiceAutoCalculationService {
       include: {
         room: {
           include: {
-            building: true,
+            building: {
+              include: {
+                surcharges: {
+                  where: { isActive: true },
+                  select: { amount: true, name: true },
+                },
+              },
+            },
           },
         },
       },
@@ -89,13 +96,18 @@ export class InvoiceAutoCalculationService {
       throw new Error("Hóa đơn đã tồn tại cho tháng này");
     }
 
+    // Sum active surcharges → add to serviceAmount
+    const surchargesTotal = tenant.room.building.surcharges?.reduce(
+      (sum, s) => sum + s.amount, 0
+    ) ?? 0;
+
     // Calculate amounts using calculator service
     const calculation = invoiceCalculatorService.calculateInvoiceAmount({
       roomPrice: tenant.room.price,
       electricityUsage: params.electricityUsage,
       electricityPrice: tenant.room.building.electricityPrice,
       waterPrice: tenant.room.building.waterPrice,
-      serviceAmount: params.serviceAmount,
+      serviceAmount: (params.serviceAmount ?? 0) + surchargesTotal,
       otherAmount: params.otherAmount,
     });
 

@@ -114,7 +114,7 @@ export function LandlordSidebar() {
       {/* Header */}
       <div className="p-6">
         <Link href="/landlord/dashboard">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-500 to-orange-500 bg-clip-text text-transparent cursor-pointer hover:opacity-80 transition-opacity">
             HouseSea
           </h1>
         </Link>

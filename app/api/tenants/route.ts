@@ -163,6 +163,10 @@ export async function POST(request: NextRequest) {
     const randomPassword = Math.random().toString(36).slice(-8);
     const hashedPassword = await bcrypt.hash(randomPassword, 10);
 
+    // Generate unique userCode for tenant (TN001, TN002, ...)
+    const tenantCount = await prisma.tenant.count();
+    const userCode = `TN${String(tenantCount + 1).padStart(3, "0")}`;
+
     // Create user and tenant
     const user = await prisma.user.create({
       data: {
@@ -172,6 +176,7 @@ export async function POST(request: NextRequest) {
         role: "TENANT",
         tenant: {
           create: {
+            userCode,
             landlordId,
             phone,
             idCard,

@@ -8,3 +8,4 @@ export function useLandlordId() {
   const { data: session } = useSession();
   return session?.user?.landlordId || null;
 }
+  

@@ -53,6 +53,7 @@ export default function TenantsPage() {
     email: "",
     phone: "",
     idCard: "",
+    address: "",
   });
   const [inviteUserCode, setInviteUserCode] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
@@ -484,6 +485,7 @@ export default function TenantsPage() {
                                 email: tenant.user?.email || "",
                                 phone: tenant.phone,
                                 idCard: tenant.idCard || "",
+                                address: tenant.address || "",
                               });
                               setIsEditDialogOpen(true);
                             }}

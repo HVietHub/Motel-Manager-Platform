@@ -8,43 +8,12 @@ import { signIn } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Building2, User, Shield, CheckCircle, Star, ArrowRight } from "lucide-react";
+import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
 type UserRole = "LANDLORD" | "TENANT";
-
-// Animation variants
-const fadeInUp = {
-  hidden: { opacity: 0, y: 20 },
-  visible: { opacity: 1, y: 0 }
-};
-
-const fadeInLeft = {
-  hidden: { opacity: 0, x: -30 },
-  visible: { opacity: 1, x: 0 }
-};
-
-const fadeInRight = {
-  hidden: { opacity: 0, x: 30 },
-  visible: { opacity: 1, x: 0 }
-};
-
-const scaleIn = {
-  hidden: { opacity: 0, scale: 0.9 },
-  visible: { opacity: 1, scale: 1 }
-};
-
-const floatingAnimation = {
-  y: [-8, 8, -8],
-  transition: {
-    duration: 4,
-    repeat: Infinity,
-    ease: "easeInOut" as const
-  }
-};
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,6 +21,7 @@ export default function LoginPage() {
   const [selectedRole, setSelectedRole] = useState<UserRole>("LANDLORD");
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -65,8 +35,7 @@ export default function LoginPage() {
     setShake(false);
 
     try {
-      // Use NextAuth signIn with remember me option
-      const result = await signIn('credentials', {
+      const result = await signIn("credentials", {
         email: formData.email,
         password: formData.password,
         rememberMe: formData.rememberMe,
@@ -82,8 +51,7 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        // Fetch session to get user role
-        const sessionResponse = await fetch('/api/auth/session');
+        const sessionResponse = await fetch("/api/auth/session");
         const session = await sessionResponse.json();
 
         if (!session?.user) {
@@ -94,11 +62,11 @@ export default function LoginPage() {
           return;
         }
 
-        // Verify role matches selection
         if (session.user.role !== selectedRole) {
-          const errorMsg = selectedRole === "LANDLORD"
-            ? "Tài khoản này không phải là chủ nhà"
-            : "Tài khoản này không phải là người thuê";
+          const errorMsg =
+            selectedRole === "LANDLORD"
+              ? "Tài khoản này không phải là chủ nhà"
+              : "Tài khoản này không phải là người thuê";
           setError(errorMsg);
           setShake(true);
           setTimeout(() => setShake(false), 500);
@@ -107,16 +75,9 @@ export default function LoginPage() {
         }
 
         toast.success("Đăng nhập thành công!");
-
-        // Redirect based on role
-        if (session.user.role === "LANDLORD") {
-          router.push("/landlord/dashboard");
-        } else {
-          router.push("/tenant/dashboard");
-        }
+        router.push(session.user.role === "LANDLORD" ? "/landlord/dashboard" : "/tenant/dashboard");
       }
-    } catch (error) {
-      console.error("Login error:", error);
+    } catch {
       setError("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.");
       setShake(true);
       setTimeout(() => setShake(false), 500);
@@ -125,397 +86,341 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 overflow-hidden">
-      {/* Left Side - Hero Image Section */}
-      <motion.div
-        className="hidden lg:flex lg:w-1/2 relative overflow-hidden"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.8 }}
-      >
-        {/* Background Gradient Overlay */}
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-600/90 via-indigo-600/85 to-purple-700/90 z-10" />
+    <div className="min-h-screen flex overflow-hidden bg-[#1f2116]">
 
-        {/* Background Image */}
+      {/* ── Left panel — brand visual ─────────────────────────────── */}
+      <motion.div
+        className="hidden lg:flex lg:w-[52%] relative overflow-hidden"
+        initial={{ opacity: 0, x: -40 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.7, ease: "easeOut" }}
+      >
+        {/* Overlay gradient — deep olive → transparent */}
+        <div className="absolute inset-0 bg-gradient-to-br from-[#1f2116]/95 via-[#31361b]/80 to-[#1f2116]/60 z-10" />
+
+        {/* Background photo */}
         <Image
-          src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&h=1600&fit=crop"
+          src="/images/login-hero.png"
           alt="Modern apartment building"
           fill
           className="object-cover"
           priority
         />
 
-        {/* Content Overlay */}
+        {/* Amber accent line top */}
+        <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#fdb549] to-[#ed7307] z-20" />
+
+        {/* Content */}
         <div className="relative z-20 flex flex-col justify-between p-12 text-white w-full">
+
           {/* Logo */}
           <motion.div
-            className="flex items-center gap-3"
-            initial="hidden"
-            animate="visible"
-            variants={fadeInLeft}
-            transition={{ duration: 0.6, delay: 0.2 }}
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
           >
-            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="p-2 bg-white/20 backdrop-blur-sm rounded-xl">
-                <Building2 className="h-8 w-8" />
+            <Link href="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity w-fit">
+              <div className="p-1.5 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10">
+                <img src="/icon.webp" alt="HouseSea" width={30} height={30} className="rounded-lg" />
               </div>
-              <span className="text-2xl font-bold">HouseSea</span>
+              <span className="text-xl font-bold tracking-tight">HouseSea</span>
             </Link>
           </motion.div>
 
-          {/* Main Content */}
+          {/* Headline */}
           <div className="space-y-8">
             <motion.div
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUp}
-              transition={{ duration: 0.6, delay: 0.4 }}
+              initial={{ opacity: 0, y: 24 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.45, duration: 0.6 }}
             >
+              <p className="text-[#fdb549] text-sm font-semibold tracking-widest uppercase mb-4">
+                Nền tảng quản lý nhà trọ
+              </p>
               <h1 className="text-4xl xl:text-5xl font-bold leading-tight mb-4">
-                Chào mừng trở lại!
+                Chào mừng<br />trở lại!
               </h1>
-              <p className="text-xl text-white/80 leading-relaxed max-w-md">
+              <p className="text-white/70 text-lg leading-relaxed max-w-sm">
                 Đăng nhập để quản lý nhà trọ của bạn một cách dễ dàng và hiệu quả.
               </p>
             </motion.div>
 
-            {/* Feature Badges */}
+            {/* Feature list — icon line style */}
             <motion.div
-              className="space-y-4"
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUp}
-              transition={{ duration: 0.6, delay: 0.6 }}
+              className="space-y-3"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.65 }}
             >
               {[
-                { icon: Shield, text: "Bảo mật tuyệt đối" },
-                { icon: CheckCircle, text: "Quản lý dễ dàng" },
-                { icon: Star, text: "Hỗ trợ 24/7" },
-              ].map((feature, index) => (
+                { icon: Shield,       text: "Bảo mật tuyệt đối với mã hóa SSL" },
+                { icon: CheckCircle,  text: "Quản lý hợp đồng & hóa đơn tự động" },
+                { icon: Star,         text: "Hỗ trợ 24/7 — đánh giá 4.9/5 sao" },
+              ].map((f, i) => (
                 <motion.div
-                  key={index}
-                  className="flex items-center gap-3 text-white/90"
-                  initial={{ opacity: 0, x: -20 }}
+                  key={i}
+                  className="flex items-center gap-3 text-white/85"
+                  initial={{ opacity: 0, x: -16 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.8 + index * 0.15 }}
+                  transition={{ delay: 0.75 + i * 0.12 }}
                 >
-                  <div className="p-2 bg-white/10 rounded-lg backdrop-blur-sm">
-                    <feature.icon className="h-5 w-5" />
-                  </div>
-                  <span className="font-medium">{feature.text}</span>
+                  <f.icon className="h-4 w-4 text-[#fdb549] flex-shrink-0" strokeWidth={1.75} />
+                  <span className="text-sm">{f.text}</span>
                 </motion.div>
               ))}
             </motion.div>
           </div>
 
-          {/* Floating Decorative Elements */}
+          {/* Stats + floating cards */}
           <div className="relative">
-            {/* Floating Card 1 */}
+            {/* Floating card 1 */}
             <motion.div
-              className="absolute -top-32 -right-4 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20"
-              animate={floatingAnimation}
+              className="absolute -top-28 right-0 bg-white/8 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 shadow-xl"
+              animate={{ y: [-6, 6, -6] }}
+              transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-green-400/20 rounded-full flex items-center justify-center">
-                  <CheckCircle className="h-5 w-5 text-green-300" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                <CheckCircle className="h-5 w-5 text-[#8b9c38]" strokeWidth={1.75} />
                 <div>
-                  <div className="font-semibold text-sm">Đã xác thực</div>
-                  <div className="text-xs text-white/60">100% an toàn</div>
+                  <div className="font-semibold text-xs">Đã xác thực</div>
+                  <div className="text-[10px] text-white/50">100% an toàn</div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Floating Card 2 */}
+            {/* Floating card 2 */}
             <motion.div
-              className="absolute -top-20 right-40 bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20"
-              animate={{
-                y: [8, -8, 8],
-                transition: {
-                  duration: 3.5,
-                  repeat: Infinity,
-                  ease: "easeInOut"
-                }
-              }}
+              className="absolute -top-14 right-36 bg-white/8 backdrop-blur-md rounded-2xl p-3.5 border border-white/15 shadow-xl"
+              animate={{ y: [6, -6, 6] }}
+              transition={{ duration: 3.5, repeat: Infinity, ease: "easeInOut" }}
             >
-              <div className="flex items-center gap-3">
-                <div className="h-10 w-10 bg-yellow-400/20 rounded-full flex items-center justify-center">
-                  <Star className="h-5 w-5 text-yellow-300" />
-                </div>
+              <div className="flex items-center gap-2.5">
+                <TrendingUp className="h-5 w-5 text-[#fdb549]" strokeWidth={1.75} />
                 <div>
-                  <div className="font-semibold text-sm">Đánh giá cao</div>
-                  <div className="text-xs text-white/60">4.9/5 sao</div>
+                  <div className="font-semibold text-xs">Tăng trưởng</div>
+                  <div className="text-[10px] text-white/50">+25% / tháng</div>
                 </div>
               </div>
             </motion.div>
 
-            {/* Stats */}
+            {/* Stats row */}
             <motion.div
-              className="flex gap-8 pt-8 border-t border-white/20"
-              initial="hidden"
-              animate="visible"
-              variants={fadeInUp}
-              transition={{ duration: 0.6, delay: 1 }}
+              className="flex gap-8 pt-8 border-t border-white/15"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 1, duration: 0.5 }}
             >
               {[
                 { value: "10K+", label: "Người dùng" },
-                { value: "5K+", label: "Tòa nhà" },
+                { value: "5K+",  label: "Tòa nhà" },
                 { value: "50K+", label: "Phòng trọ" },
-              ].map((stat, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ scale: 1.05 }}
-                  className="text-center"
-                >
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <div className="text-sm text-white/60">{stat.label}</div>
-                </motion.div>
+              ].map((s, i) => (
+                <div key={i} className="text-center">
+                  <div className="text-2xl font-bold text-[#fdb549]">{s.value}</div>
+                  <div className="text-xs text-white/50 mt-0.5">{s.label}</div>
+                </div>
               ))}
             </motion.div>
           </div>
         </div>
       </motion.div>
 
-      {/* Right Side - Login Form */}
-      <div className="w-full lg:w-1/2 flex items-center justify-center p-4 lg:p-8">
+      {/* ── Right panel — login form ───────────────────────────────── */}
+      <div className="w-full lg:w-[48%] flex items-center justify-center p-6 lg:p-12 bg-[#fafaf8]">
         <motion.div
-          initial="hidden"
-          animate="visible"
-          variants={scaleIn}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-md"
+          className="w-full max-w-[420px]"
+          initial={{ opacity: 0, y: 24 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
         >
-          <Card className="border-0 shadow-2xl shadow-blue-500/10 bg-white/80 backdrop-blur-sm">
-            <CardHeader className="space-y-1 text-center pb-2">
-              <motion.div
-                className="flex justify-center mb-4"
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ type: "spring", stiffness: 200, damping: 15, delay: 0.2 }}
-              >
-                <motion.div
-                  className="p-4 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg shadow-blue-500/30"
-                  whileHover={{ scale: 1.05, rotate: 5 }}
-                  transition={{ type: "spring", stiffness: 300 }}
-                >
-                  <Building2 className="h-10 w-10 text-white" />
-                </motion.div>
-              </motion.div>
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.3 }}
-              >
-                <CardTitle className="text-3xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
-                  Đăng Nhập
-                </CardTitle>
-                <CardDescription className="text-base mt-2">
-                  Chào mừng bạn quay trở lại HouseSea
-                </CardDescription>
-              </motion.div>
-            </CardHeader>
-            <CardContent className="pt-4">
-              {/* Role Selection */}
-              <motion.div
-                className="grid grid-cols-2 gap-3 mb-6"
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.4 }}
-              >
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    type="button"
-                    variant={selectedRole === "LANDLORD" ? "default" : "outline"}
-                    className={cn(
-                      "h-auto py-4 flex flex-col gap-2 w-full transition-all duration-300",
-                      selectedRole === "LANDLORD"
-                        ? "ring-2 ring-blue-500 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25"
-                        : "hover:border-blue-300 hover:bg-blue-50/50"
-                    )}
-                    onClick={() => setSelectedRole("LANDLORD")}
-                  >
-                    <Building2 className="h-6 w-6" />
-                    <span className="font-medium">Chủ Nhà</span>
-                  </Button>
-                </motion.div>
-                <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                  <Button
-                    type="button"
-                    variant={selectedRole === "TENANT" ? "default" : "outline"}
-                    className={cn(
-                      "h-auto py-4 flex flex-col gap-2 w-full transition-all duration-300",
-                      selectedRole === "TENANT"
-                        ? "ring-2 ring-blue-500 bg-gradient-to-r from-blue-500 to-indigo-600 shadow-lg shadow-blue-500/25"
-                        : "hover:border-blue-300 hover:bg-blue-50/50"
-                    )}
-                    onClick={() => setSelectedRole("TENANT")}
-                  >
-                    <User className="h-6 w-6" />
-                    <span className="font-medium">Người Thuê</span>
-                  </Button>
-                </motion.div>
-              </motion.div>
+          {/* Mobile logo */}
+          <div className="flex lg:hidden items-center gap-2 mb-8">
+            <img src="/icon.webp" alt="HouseSea" width={28} height={28} className="rounded-lg" />
+            <span className="text-lg font-bold text-[#1f2116]">HouseSea</span>
+          </div>
 
-              <motion.form
-                onSubmit={handleSubmit}
-                className="space-y-4"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.5 }}
-              >
-                {/* Error Message */}
-                {error && (
-                  <motion.div
-                    className={`p-3 rounded-lg bg-red-50 border border-red-200 ${shake ? 'animate-shake' : ''}`}
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                  >
-                    <p className="text-sm text-red-600 flex items-center gap-2">
-                      <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      {error}
-                    </p>
-                  </motion.div>
+          {/* Header */}
+          <div className="mb-8">
+            <h2 className="text-3xl font-bold text-[#1f2116] mb-1.5">Đăng nhập</h2>
+            <p className="text-sm text-[#64748b]">Chào mừng bạn quay trở lại</p>
+          </div>
+
+          {/* Role selector */}
+          <motion.div
+            className="grid grid-cols-2 gap-2.5 mb-7 p-1 bg-[#f1f0ec] rounded-xl"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.15 }}
+          >
+            {(["LANDLORD", "TENANT"] as UserRole[]).map((role) => {
+              const active = selectedRole === role;
+              return (
+                <motion.button
+                  key={role}
+                  type="button"
+                  onClick={() => { setSelectedRole(role); setError(""); }}
+                  whileTap={{ scale: 0.97 }}
+                  className={cn(
+                    "flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200",
+                    active
+                      ? "bg-white text-[#1f2116] shadow-sm border border-[#e2e0d8]"
+                      : "text-[#64748b] hover:text-[#1f2116]"
+                  )}
+                >
+                  {role === "LANDLORD"
+                    ? <Building2 className={cn("h-4 w-4", active ? "text-[#fdb549]" : "")} strokeWidth={1.75} />
+                    : <User className={cn("h-4 w-4", active ? "text-[#fdb549]" : "")} strokeWidth={1.75} />
+                  }
+                  {role === "LANDLORD" ? "Chủ Nhà" : "Người Thuê"}
+                </motion.button>
+              );
+            })}
+          </motion.div>
+
+          {/* Form */}
+          <motion.form
+            onSubmit={handleSubmit}
+            className="space-y-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.25 }}
+          >
+            {/* Error */}
+            {error && (
+              <motion.div
+                className={cn(
+                  "flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600",
+                  shake && "animate-shake"
                 )}
-
-                <motion.div
-                  className="space-y-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.55 }}
-                >
-                  <Label htmlFor="email" className="text-gray-700 font-medium">Email</Label>
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="example@email.com"
-                    value={formData.email}
-                    onChange={(e) => {
-                      setFormData({ ...formData, email: e.target.value });
-                      setError("");
-                    }}
-                    required
-                    disabled={isLoading}
-                    className={cn(
-                      "h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300",
-                      error && 'border-red-300 focus-visible:ring-red-500'
-                    )}
-                  />
-                </motion.div>
-                <motion.div
-                  className="space-y-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.6 }}
-                >
-                  <Label htmlFor="password" className="text-gray-700 font-medium">Mật Khẩu</Label>
-                  <Input
-                    id="password"
-                    type="password"
-                    placeholder="••••••••"
-                    value={formData.password}
-                    onChange={(e) => {
-                      setFormData({ ...formData, password: e.target.value });
-                      setError("");
-                    }}
-                    required
-                    disabled={isLoading}
-                    className={cn(
-                      "h-12 border-gray-200 focus:border-blue-500 focus:ring-blue-500/20 transition-all duration-300",
-                      error && 'border-red-300 focus-visible:ring-red-500'
-                    )}
-                  />
-                </motion.div>
-
-                {/* Remember Me Checkbox */}
-                <motion.div
-                  className="flex items-center space-x-2"
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.65 }}
-                >
-                  <input
-                    id="rememberMe"
-                    type="checkbox"
-                    checked={formData.rememberMe}
-                    onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                    disabled={isLoading}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
-                  />
-                  <Label 
-                    htmlFor="rememberMe" 
-                    className="text-sm text-gray-600 cursor-pointer select-none"
-                  >
-                    Duy trì đăng nhập
-                  </Label>
-                </motion.div>
-
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.01 }}
-                    whileTap={{ scale: 0.99 }}
-                  >
-                    <Button
-                      type="submit"
-                      className="w-full h-12 text-base font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 shadow-lg shadow-blue-500/25 transition-all duration-300"
-                      disabled={isLoading}
-                    >
-                      {isLoading ? (
-                        <motion.div
-                          className="flex items-center gap-2"
-                          initial={{ opacity: 0 }}
-                          animate={{ opacity: 1 }}
-                        >
-                          <motion.div
-                            className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-                          />
-                          Đang đăng nhập...
-                        </motion.div>
-                      ) : (
-                        <span className="flex items-center gap-2">
-                          Đăng Nhập
-                          <ArrowRight className="h-4 w-4" />
-                        </span>
-                      )}
-                    </Button>
-                  </motion.div>
-                </motion.div>
-              </motion.form>
-
-              <motion.div
-                className="mt-6 text-center text-sm"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.7 }}
+                initial={{ opacity: 0, scale: 0.97 }}
+                animate={{ opacity: 1, scale: 1 }}
               >
-                <span className="text-muted-foreground">Chưa có tài khoản? </span>
-                <Link
-                  href="/register"
-                  className="text-blue-600 font-medium hover:text-blue-700 hover:underline transition-colors"
-                >
-                  Đăng ký ngay
-                </Link>
+                <svg className="h-4 w-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                {error}
               </motion.div>
+            )}
 
-              <motion.div
-                className="mt-6 pt-6 border-t border-gray-100"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: 0.75 }}
+            {/* Email */}
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-sm font-medium text-[#1f2116]">
+                Email
+              </Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="example@email.com"
+                value={formData.email}
+                onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setError(""); }}
+                required
+                disabled={isLoading}
+                className={cn(
+                  "h-11 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
+                  error && "border-red-300 focus-visible:ring-red-400/20"
+                )}
+              />
+            </div>
+
+            {/* Password */}
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-sm font-medium text-[#1f2116]">
+                Mật khẩu
+              </Label>
+              <div className="relative">
+                <Input
+                  id="password"
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setError(""); }}
+                  required
+                  disabled={isLoading}
+                  className={cn(
+                    "h-11 pr-10 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
+                    error && "border-red-300 focus-visible:ring-red-400/20"
+                  )}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[#94a3b8] hover:text-[#1f2116] transition-colors"
+                  tabIndex={-1}
+                >
+                  {showPassword
+                    ? <EyeOff className="h-4 w-4" strokeWidth={1.75} />
+                    : <Eye className="h-4 w-4" strokeWidth={1.75} />
+                  }
+                </button>
+              </div>
+            </div>
+
+            {/* Remember me */}
+            <div className="flex items-center gap-2">
+              <input
+                id="rememberMe"
+                type="checkbox"
+                checked={formData.rememberMe}
+                onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                disabled={isLoading}
+                className="h-4 w-4 rounded border-[#e2e0d8] text-[#fdb549] focus:ring-[#fdb549]/30 cursor-pointer accent-[#fdb549]"
+              />
+              <Label htmlFor="rememberMe" className="text-sm text-[#64748b] cursor-pointer select-none">
+                Duy trì đăng nhập
+              </Label>
+            </div>
+
+            {/* Submit */}
+            <motion.div whileHover={{ scale: 1.005 }} whileTap={{ scale: 0.995 }}>
+              <Button
+                type="submit"
+                disabled={isLoading}
+                className="w-full h-11 text-sm font-semibold bg-[#1f2116] hover:bg-[#31361b] text-white border-0 shadow-sm transition-colors duration-200"
               >
-                <p className="text-xs text-center text-muted-foreground">
-                  © 2026 HouseSea. Kết nối ngôi nhà của bạn
-                </p>
-              </motion.div>
-            </CardContent>
-          </Card>
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <motion.span
+                      className="inline-block w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                    />
+                    Đang đăng nhập...
+                  </span>
+                ) : (
+                  <span className="flex items-center gap-2">
+                    Đăng nhập
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                )}
+              </Button>
+            </motion.div>
+          </motion.form>
+
+          {/* Divider */}
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-[#e2e0d8]" />
+            </div>
+            <div className="relative flex justify-center">
+              <span className="bg-[#fafaf8] px-3 text-xs text-[#94a3b8]">hoặc</span>
+            </div>
+          </div>
+
+          {/* Register link */}
+          <p className="text-center text-sm text-[#64748b]">
+            Chưa có tài khoản?{" "}
+            <Link
+              href="/register"
+              className="font-semibold text-[#ed7307] hover:text-[#bf4514] transition-colors"
+            >
+              Đăng ký ngay
+            </Link>
+          </p>
+
+          {/* Footer */}
+          <p className="mt-8 text-center text-xs text-[#94a3b8]">
+            © 2026 HouseSea. Kết nối ngôi nhà của bạn
+          </p>
         </motion.div>
       </div>
     </div>

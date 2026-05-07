@@ -35,9 +35,13 @@ export async function GET(request: NextRequest) {
     const availableRooms = rooms.filter((r) => r.status === "AVAILABLE").length;
     const occupiedRooms = rooms.filter((r) => r.status === "OCCUPIED").length;
 
-    // Get total tenants
+    // Get total tenants (accepted only)
     const totalTenants = await prisma.tenant.count({
-      where: { landlordId },
+      where: {
+        landlordId,
+        invitationStatus: "accepted",
+        NOT: { landlordId: "" },
+      },
     });
 
     // Get current month/year

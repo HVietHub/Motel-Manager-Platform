@@ -5,6 +5,7 @@ import { Toaster } from "@/components/ui/sonner";
 import { SkipToContent } from "@/components/shared/skip-to-content";
 import { NextAuthProvider } from "@/components/providers/session-provider";
 import { ChatbotWidget } from "@/components/chatbot/chatbot-widget";
+import { NavigationProgress } from "@/components/shared/navigation-progress";
 
 const inter = Inter({ subsets: ["latin", "vietnamese"] });
 
@@ -12,7 +13,9 @@ export const metadata: Metadata = {
   title: "HouseSea - Nền Tảng Quản Lý Nhà Trọ Thông Minh",
   description: "Kết nối chủ nhà và người thuê - Quản lý nhà trọ dễ dàng, hiệu quả",
   icons: {
-    icon: "/favicon.ico",
+    icon: "/icon.webp",
+    shortcut: "/icon.webp",
+    apple: "/icon.webp",
   },
 };
 
@@ -25,6 +28,7 @@ export default function RootLayout({
     <html lang="vi">
       <body className={inter.className}>
         <NextAuthProvider>
+          <NavigationProgress />
           <SkipToContent />
           {children}
           <ChatbotWidget />

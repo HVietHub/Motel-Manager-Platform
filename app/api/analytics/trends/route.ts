@@ -82,9 +82,12 @@ export async function GET(request: NextRequest) {
       trendAnalysis
     )
 
-    trendAnalysis.insights = insights
+    const result = {
+      ...trendAnalysis,
+      insights
+    }
 
-    return NextResponse.json(trendAnalysis, { status: 200 })
+    return NextResponse.json(result, { status: 200 })
   } catch (error: any) {
     if (error.message.includes('Insufficient data')) {
       return NextResponse.json(

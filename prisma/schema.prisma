@@ -12,19 +12,22 @@ datasource db {
 }
 
 model User {
-  id        String   @id @default(cuid())
-  email     String   @unique
-  password  String
-  name      String
-  role      String   @default("TENANT")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  landlord  Landlord?
-  tenant    Tenant?
-  posts     Post[]
-  likes     Like[]
-  comments  Comment[]
-  shares    Share[]
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   @default("TENANT")
+  isValid       Boolean  @default(true)
+  emailVerified Boolean  @default(true)
+  phoneVerified Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  landlord      Landlord?
+  tenant        Tenant?
+  posts         Post[]
+  likes         Like[]
+  comments      Comment[]
+  shares        Share[]
 }
 
 model Landlord {
@@ -281,4 +284,15 @@ model AnalyticsAuditLog {
   
   @@index([landlordId])
   @@index([createdAt])
+}
+
+model VerificationToken {
+  id        String   @id @default(cuid())
+  email     String
+  token     String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@unique([email, token])
+  @@index([email])
 }

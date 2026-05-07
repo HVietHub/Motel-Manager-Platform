@@ -147,57 +147,84 @@ export function PricingUpsellPopup() {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-xl border-blue-200/70 overflow-hidden">
-        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-blue-600 via-indigo-500 to-cyan-400" />
+      <DialogContent className="sm:max-w-[680px] border-[#fdb549]/20 overflow-hidden rounded-[2.5rem] bg-[#fafaf8] p-0">
+        <div className="absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#fdb549] via-[#ed7307] to-[#fdb549]" />
 
-        <DialogHeader className="pt-2">
-          <div className="inline-flex items-center gap-2 rounded-full bg-blue-50 text-blue-700 px-3 py-1 text-xs font-semibold w-fit">
-            <Sparkles className="h-3.5 w-3.5" />
-            Ưu đãi nâng cấp dịch vụ
-          </div>
-          <DialogTitle className="text-2xl leading-tight mt-2">{title}</DialogTitle>
-          <DialogDescription className="text-sm text-muted-foreground">
-            {description}
-          </DialogDescription>
-        </DialogHeader>
+        <div className="p-8 lg:p-10">
+          <DialogHeader className="pt-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#fdb549]/10 text-[#ed7307] px-3 py-1.5 text-[10px] font-black uppercase tracking-[0.2em] w-fit border border-[#fdb549]/20">
+              <Sparkles className="h-3.5 w-3.5" />
+              Ưu đãi nâng cấp dịch vụ
+            </div>
+            <DialogTitle className="text-3xl lg:text-3xl font-black leading-tight mt-6 text-[#1f2116] tracking-tight whitespace-nowrap">
+              {title}
+            </DialogTitle>
+            <DialogDescription className="text-base text-muted-foreground font-medium mt-2 max-w-[90%]">
+              {description}
+            </DialogDescription>
+          </DialogHeader>
 
-        <div className="grid sm:grid-cols-2 gap-3 mt-1">
-          <div className="rounded-xl border p-4 bg-slate-50/70">
-            <p className="font-semibold mb-2 inline-flex items-center gap-2">
-              <Building2 className="h-4 w-4 text-blue-600" />
+        <div className="grid sm:grid-cols-2 gap-4 mt-4">
+          <div className="rounded-2xl border border-[#e2e0d8] p-5 bg-white shadow-sm">
+            <p className="font-black text-[#1f2116] mb-3 inline-flex items-center gap-2 text-sm uppercase tracking-wider">
+              <Building2 className="h-4 w-4 text-[#ed7307]" />
               Tòa nhà
             </p>
-            <p className="text-sm text-muted-foreground">
-              Hiện tại: <span className="font-semibold text-foreground">{stats?.totalBuildings ?? 0}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Miễn phí tối đa: <span className="font-semibold text-foreground">{FREE_PLAN_MAX_BUILDINGS}</span>
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Hiện tại: <span className="font-bold text-[#ed7307]">{stats?.totalBuildings ?? 0}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Miễn phí tối đa: <span className="font-bold text-[#1f2116]">{FREE_PLAN_MAX_BUILDINGS}</span>
+              </p>
+            </div>
+            <div className="h-1.5 w-full bg-[#f8f7f4] rounded-full mt-4 overflow-hidden">
+              <div 
+                className="h-full bg-[#fdb549] rounded-full" 
+                style={{ width: `${Math.min(((stats?.totalBuildings ?? 0) / FREE_PLAN_MAX_BUILDINGS) * 100, 100)}%` }}
+              />
+            </div>
           </div>
 
-          <div className="rounded-xl border p-4 bg-slate-50/70">
-            <p className="font-semibold mb-2 inline-flex items-center gap-2">
-              <DoorOpen className="h-4 w-4 text-indigo-600" />
+          <div className="rounded-2xl border border-[#e2e0d8] p-5 bg-white shadow-sm">
+            <p className="font-black text-[#1f2116] mb-3 inline-flex items-center gap-2 text-sm uppercase tracking-wider">
+              <DoorOpen className="h-4 w-4 text-[#8b9c38]" />
               Phòng trọ
             </p>
-            <p className="text-sm text-muted-foreground">
-              Hiện tại: <span className="font-semibold text-foreground">{stats?.totalRooms ?? 0}</span>
-            </p>
-            <p className="text-sm text-muted-foreground">
-              Miễn phí tối đa: <span className="font-semibold text-foreground">{FREE_PLAN_MAX_ROOMS}</span>
-            </p>
+            <div className="space-y-1">
+              <p className="text-sm text-muted-foreground">
+                Hiện tại: <span className="font-bold text-[#ed7307]">{stats?.totalRooms ?? 0}</span>
+              </p>
+              <p className="text-sm text-muted-foreground">
+                Miễn phí tối đa: <span className="font-bold text-[#1f2116]">{FREE_PLAN_MAX_ROOMS}</span>
+              </p>
+            </div>
+            <div className="h-1.5 w-full bg-[#f8f7f4] rounded-full mt-4 overflow-hidden">
+              <div 
+                className="h-full bg-[#8b9c38] rounded-full" 
+                style={{ width: `${Math.min(((stats?.totalRooms ?? 0) / FREE_PLAN_MAX_ROOMS) * 100, 100)}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => handleOpenChange(false)}>
+        <DialogFooter className="mt-8 gap-4 flex items-center justify-end">
+          <Button 
+            variant="secondary" 
+            className="bg-[#f8f7f4] hover:bg-[#e2e0d8] text-muted-foreground hover:text-[#1f2116] font-bold px-8 h-12 rounded-xl transition-all border border-[#e2e0d8]"
+            onClick={() => handleOpenChange(false)}
+          >
             Để sau
           </Button>
-          <Button className="bg-gradient-to-r from-blue-600 to-indigo-600" onClick={handleUpgradeClick}>
-            <Gem className="mr-2 h-4 w-4" />
+          <Button 
+            className="bg-[#1f2116] hover:bg-[#31361b] text-white font-black px-8 h-12 rounded-xl transition-all shadow-lg shadow-black/10 flex items-center gap-2" 
+            onClick={handleUpgradeClick}
+          >
+            <Gem className="h-4 w-4 text-[#fdb549]" />
             Xem gói dịch vụ
           </Button>
         </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   );

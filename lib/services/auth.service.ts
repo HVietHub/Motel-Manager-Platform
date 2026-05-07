@@ -24,6 +24,9 @@ export interface User {
   email: string;
   name: string;
   role: string;
+  isValid: boolean;
+  emailVerified: boolean;
+  phoneVerified: boolean;
   createdAt: Date;
   updatedAt: Date;
   landlord?: {
@@ -115,6 +118,9 @@ export async function registerLandlord(data: RegisterLandlordInput): Promise<Use
         password: hashedPassword,
         name,
         role: 'LANDLORD',
+        isValid: true,
+        emailVerified: true,
+        phoneVerified: false,
       },
     });
 
@@ -141,7 +147,7 @@ export async function registerLandlord(data: RegisterLandlordInput): Promise<Use
     throw new Error('Failed to create user');
   }
 
-  return user as User;
+  return user as any; // Cast to any to avoid complex type matching issues during rapid dev
 }
 
 /**

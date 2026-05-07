@@ -1,17 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, User, CheckCircle, XCircle, Eye, EyeOff, ArrowRight } from "lucide-react";
+import { Building2, User, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, Send, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { validatePassword, getPasswordStrength } from "@/lib/password-validation";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 type UserRole = "LANDLORD" | "TENANT";
 
@@ -24,6 +24,13 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showPasswordRequirements, setShowPasswordRequirements] = useState(false);
+  
+  // OTP States
+  const [countdown, setCountdown] = useState(0);
+  const [isSendingCode, setIsSendingCode] = useState(false);
+  const [otpSentMessage, setOtpSentMessage] = useState("");
+  const [otpError, setOtpError] = useState("");
+
   const [formData, setFormData] = useState({
     fullName: "",
     email: "",
@@ -32,7 +39,37 @@ export default function RegisterPage() {
     confirmPassword: "",
     idCard: "",
     address: "",
+    otp: "",
   });
+
+  useEffect(() => {
+    // Check for existing cooldown in localStorage
+    const savedCooldown = localStorage.getItem("otpCooldown");
+    if (savedCooldown) {
+      const remainingTime = Math.ceil((parseInt(savedCooldown) - Date.now()) / 1000);
+      if (remainingTime > 0) {
+        setCountdown(remainingTime);
+      } else {
+        localStorage.removeItem("otpCooldown");
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    let timer: NodeJS.Timeout;
+    if (countdown > 0) {
+      timer = setInterval(() => {
+        setCountdown((prev) => {
+          if (prev <= 1) {
+            localStorage.removeItem("otpCooldown");
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(timer);
+  }, [countdown]);
 
   const passwordValidation = validatePassword(formData.password);
   const passwordStrength = getPasswordStrength(formData.password);
@@ -40,6 +77,45 @@ export default function RegisterPage() {
   const update = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     setError("");
+  };
+
+  const handleSendCode = async () => {
+    if (!formData.email || !/^\S+@\S+\.\S+$/.test(formData.email)) {
+      toast.error("Vui lòng nhập email hợp lệ!");
+      return;
+    }
+    
+    setIsSendingCode(true);
+    try {
+      const response = await fetch("/api/auth/send-otp", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: formData.email }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setOtpError(data.error || "Gửi mã thất bại. Vui lòng thử lại.");
+        setTimeout(() => setOtpError(""), 5000);
+        return;
+      }
+
+      setOtpSentMessage("Mã xác thực đã được gửi đến email của bạn! Vui lòng kiểm tra hộp thư đến hoặc thư rác.");
+      setOtpError("");
+      
+      // Auto hide after 5 seconds
+      setTimeout(() => setOtpSentMessage(""), 5000);
+      
+      const cooldownEnd = Date.now() + 60 * 1000;
+      localStorage.setItem("otpCooldown", cooldownEnd.toString());
+      setCountdown(60);
+    } catch {
+      setOtpError("Đã xảy ra lỗi kết nối. Vui lòng thử lại.");
+      setTimeout(() => setOtpError(""), 5000);
+    } finally {
+      setIsSendingCode(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -58,6 +134,14 @@ export default function RegisterPage() {
 
     if (formData.password !== formData.confirmPassword) {
       setError("Mật khẩu xác nhận không khớp!");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      setIsLoading(false);
+      return;
+    }
+
+    if (!formData.otp) {
+      setError("Vui lòng nhập mã xác thực!");
       setShake(true);
       setTimeout(() => setShake(false), 500);
       setIsLoading(false);
@@ -105,8 +189,6 @@ export default function RegisterPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
         >
-          {/* Logo removed as requested */}
-
           {/* Header */}
           <div className="mb-4">
             <h2 className="text-2xl font-bold text-[#1f2116] mb-0.5">Tạo tài khoản</h2>
@@ -203,6 +285,83 @@ export default function RegisterPage() {
               />
             </div>
 
+            {/* OTP Code - NEW */}
+            <div className="space-y-1">
+              <div className="flex items-center justify-between">
+                <Label htmlFor="otp" className="text-xs font-medium text-[#1f2116]">Mã xác thực</Label>
+                <AnimatePresence>
+                  {otpSentMessage && (
+                    <motion.span 
+                      initial={{ opacity: 0, x: 10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: 10 }}
+                      className="text-[10px] text-[#8b9c38] font-medium flex items-center gap-1"
+                    >
+                      <Check className="h-2.5 w-2.5" /> Đã gửi email
+                    </motion.span>
+                  )}
+                </AnimatePresence>
+              </div>
+              
+              <AnimatePresence>
+                {(otpSentMessage || otpError) && (
+                  <motion.div
+                    initial={{ height: 0, opacity: 0, marginBottom: 0 }}
+                    animate={{ height: "auto", opacity: 1, marginBottom: 8 }}
+                    exit={{ height: 0, opacity: 0, marginBottom: 0 }}
+                    className="overflow-hidden"
+                  >
+                    <div className={cn(
+                      "p-2 rounded-lg text-[10px] flex items-start gap-2",
+                      otpSentMessage ? "bg-[#8b9c38]/10 text-[#8b9c38] border border-[#8b9c38]/20" : "bg-red-50 text-red-600 border border-red-100"
+                    )}>
+                      {otpSentMessage ? (
+                        <CheckCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      ) : (
+                        <XCircle className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      )}
+                      <p className="leading-tight">{otpSentMessage || otpError}</p>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+
+              <div className="flex gap-2">
+                <Input
+                  id="otp"
+                  placeholder="Nhập mã 6 số"
+                  value={formData.otp}
+                  onChange={(e) => update("otp", e.target.value)}
+                  required
+                  disabled={isLoading}
+                  maxLength={6}
+                  className="h-10 text-sm bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] flex-1"
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={countdown > 0 || isSendingCode || isLoading}
+                  onClick={handleSendCode}
+                  className="h-10 px-3 text-xs font-semibold border-[#e2e0d8] text-[#1f2116] hover:bg-[#f1f0ec] min-w-[100px]"
+                >
+                  {isSendingCode ? (
+                    <motion.span
+                      className="w-3 h-3 border-2 border-[#1f2116]/30 border-t-[#1f2116] rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+                    />
+                  ) : countdown > 0 ? (
+                    `Gửi lại (${countdown}s)`
+                  ) : (
+                    <span className="flex items-center gap-1.5">
+                      <Send className="h-3 w-3" />
+                      Gửi mã
+                    </span>
+                  )}
+                </Button>
+              </div>
+            </div>
+
             {/* Password */}
             <div className="space-y-1">
               <Label htmlFor="password" className="text-xs font-medium text-[#1f2116]">Mật khẩu</Label>
@@ -241,7 +400,7 @@ export default function RegisterPage() {
                 </div>
               )}
 
-              {/* Requirements - Made more compact */}
+              {/* Requirements */}
               {showPasswordRequirements && formData.password && (
                 <motion.div
                   className="p-2 bg-[#f8f7f4] border border-[#e2e0d8] rounded-lg grid grid-cols-2 gap-x-3 gap-y-1 text-[10px] mt-1"
@@ -362,7 +521,6 @@ export default function RegisterPage() {
         animate={{ opacity: 1, x: 0 }}
         transition={{ duration: 0.7, ease: "easeOut" }}
       >
-        {/* Background photo */}
         <Image
           src="/images/register-hero.png"
           alt="Landlord and tenant interaction"
@@ -370,14 +528,8 @@ export default function RegisterPage() {
           className="object-cover opacity-60"
           priority
         />
-
-        {/* Overlay gradient */}
         <div className="absolute inset-0 bg-gradient-to-t from-[#1f2116] via-[#1f2116]/40 to-transparent z-10" />
-
-        {/* Amber accent line left */}
         <div className="absolute top-0 left-0 bottom-0 w-1 bg-gradient-to-b from-[#fdb549] to-[#ed7307] z-20" />
-
-        {/* Content */}
         <div className="relative z-20 flex flex-col justify-center p-14 text-white w-full">
           <motion.div
             initial={{ opacity: 0, y: 24 }}
@@ -398,7 +550,6 @@ export default function RegisterPage() {
               </p>
             </div>
 
-            {/* Feature list */}
             <div className="space-y-5">
               {[
                 { title: "Hóa đơn tự động",     desc: "Tính điện, nước, dịch vụ tự động hàng tháng" },
@@ -424,7 +575,6 @@ export default function RegisterPage() {
               ))}
             </div>
 
-            {/* Stats */}
             <motion.div
               className="grid grid-cols-3 gap-4 pt-8 border-t border-white/10"
               initial={{ opacity: 0 }}

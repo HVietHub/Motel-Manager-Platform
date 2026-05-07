@@ -8,9 +8,7 @@ import { validatePassword } from '@/lib/password-validation';
 /**
  * Registration API Route
  * 
- * Handles user registration for landlords.
- * Currently only supports LANDLORD role registration.
- * TENANT accounts are created by landlords through the tenant management interface.
+ * Handles user registration for landlords and tenants.
  * 
  * Requirements: 1.1, 1.2
  */
@@ -23,6 +21,7 @@ const registerSchema = z.object({
   role: z.enum(['LANDLORD', 'TENANT']),
   idCard: z.string().optional(),
   address: z.string().optional(),
+  otp: z.string().optional(), // Added for future OTP validation
 });
 
 export async function POST(request: NextRequest) {
@@ -63,42 +62,57 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Verify OTP
+    if (!body.otp) {
+      return NextResponse.json(
+        { error: 'Vui lòng nhập mã xác thực' },
+        { status: 400 }
+      );
+    }
+
+    const verificationToken = await prisma.verificationToken.findFirst({
+      where: {
+        email,
+        token: body.otp,
+        expiresAt: { gt: new Date() },
+      },
+    });
+
+    if (!verificationToken) {
+      return NextResponse.json(
+        { error: 'Mã xác thực không chính xác hoặc đã hết hạn' },
+        { status: 400 }
+      );
+    }
+
     // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    let registeredUser;
+
     // Create user based on role
     if (role === 'LANDLORD') {
-      const user = await registerLandlord({
+      registeredUser = await registerLandlord({
         email,
         password,
         name: fullName,
         phone,
         address,
       });
-      
-      return NextResponse.json(
-        {
-          message: 'Đăng ký thành công',
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-        },
-        { status: 201 }
-      );
     } else {
       // Generate user code for tenant
       const userCode = await AuthService.generateUserCode('TENANT')
       
-      // Create TENANT user without landlordId (will be assigned when landlord invites them)
-      const user = await prisma.user.create({
+      // Create TENANT user
+      registeredUser = await prisma.user.create({
         data: {
           email,
           password: hashedPassword,
           name: fullName,
           role: 'TENANT',
+          isValid: true,
+          emailVerified: true,
+          phoneVerified: false,
           tenant: {
             create: {
               userCode,
@@ -113,20 +127,28 @@ export async function POST(request: NextRequest) {
           tenant: true,
         },
       });
-
-      return NextResponse.json(
-        {
-          message: 'Đăng ký thành công',
-          user: {
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            role: user.role,
-          },
-        },
-        { status: 201 }
-      );
     }
+
+
+    // Cleanup: Delete used verification token
+    prisma.verificationToken.deleteMany({
+      where: { email }
+    }).catch(err => {
+      console.error('Failed to cleanup verification tokens for', email, err);
+    });
+
+    return NextResponse.json(
+      {
+        message: 'Đăng ký thành công',
+        user: {
+          id: registeredUser.id,
+          email: registeredUser.email,
+          name: registeredUser.name,
+          role: registeredUser.role,
+        },
+      },
+      { status: 201 }
+    );
   } catch (error: any) {
     console.error('Registration error:', error);
     

@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { signIn } from "next-auth/react";
+import { signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +63,9 @@ export default function LoginPage() {
         }
 
         if (session.user.role !== selectedRole) {
+          // Sign out immediately — don't leave a valid session for the wrong role
+          await signOut({ redirect: false });
+
           const errorMsg =
             selectedRole === "LANDLORD"
               ? "Tài khoản này không phải là chủ nhà"

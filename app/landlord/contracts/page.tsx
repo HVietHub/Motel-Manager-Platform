@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -29,7 +30,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Plus, Search, Pencil, XCircle, FileText } from "lucide-react";
+import { Plus, Search, Pencil, XCircle, FileText, X } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
@@ -70,6 +71,10 @@ type Room = {
 };
 
 export default function ContractsPage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const tenantIdFilter = searchParams.get("tenantId");
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -188,7 +193,8 @@ export default function ContractsPage() {
       contract.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()) ||
       contract.buildingName.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || contract.status === statusFilter;
-    return matchesSearch && matchesStatus;
+    const matchesTenant = !tenantIdFilter || contract.tenantId === tenantIdFilter;
+    return matchesSearch && matchesStatus && matchesTenant;
   });
 
   const handleCreate = async () => {
@@ -331,9 +337,30 @@ export default function ContractsPage() {
         </Button>
       </div>
 
+      {/* Tenant filter banner */}
+      {tenantIdFilter && (
+        <div className="flex items-center gap-3 px-4 py-2 bg-blue-50 border border-blue-200 rounded-lg text-sm text-blue-800">
+          <FileText className="h-4 w-4 shrink-0" />
+          <span>
+            Đang lọc hợp đồng của:{" "}
+            <span className="font-semibold">
+              {filteredContracts[0]?.tenantName ?? tenantIdFilter}
+            </span>
+          </span>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="ml-auto h-6 w-6 p-0 text-blue-700 hover:text-blue-900 hover:bg-blue-100"
+            onClick={() => router.push("/landlord/contracts")}
+            title="Xóa bộ lọc"
+          >
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
+      )}
+
       {/* Search and Filter */}
-      <Card>
-        <CardHeader>
+      <Card>        <CardHeader>
           <CardTitle>Danh Sách Hợp Đồng</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

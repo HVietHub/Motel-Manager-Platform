@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { registerLandlord, AuthService } from '@/lib/services/auth/auth.servicervice';
+import { registerLandlord } from '@/lib/services/auth/auth.service';
 import { prisma } from '@/lib/prisma';
-import bcrypt from 'bcryptjs';
 import { z } from 'zod';
 import { validatePassword } from '@/lib/validation/password-validation';
 
 /**
  * Registration API Route
  * 
- * Handles user registration for landlords and tenants.
+ * Handles user registration for landlords only.
  * 
  * Requirements: 1.1, 1.2
  */
@@ -18,7 +17,7 @@ const registerSchema = z.object({
   email: z.string().email('Email không hợp lệ'),
   phone: z.string().regex(/^[0-9]{10,11}$/, 'Số điện thoại phải có 10-11 chữ số'),
   password: z.string().min(8, 'Mật khẩu phải có ít nhất 8 ký tự'),
-  role: z.enum(['LANDLORD', 'TENANT']),
+  role: z.literal('LANDLORD').optional().default('LANDLORD'),
   idCard: z.string().optional(),
   address: z.string().optional(),
   otp: z.string().optional(), // Added for future OTP validation
@@ -39,7 +38,7 @@ export async function POST(request: NextRequest) {
       );
     }
     
-    const { fullName, email, phone, password, role, idCard, address } = validationResult.data;
+    const { fullName, email, phone, password, address } = validationResult.data;
     
     // Validate password strength
     const passwordValidation = validatePassword(password);
@@ -85,55 +84,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    let registeredUser;
-
-    // Create user based on role
-    if (role === 'LANDLORD') {
-      registeredUser = await registerLandlord({
-        email,
-        password,
-        name: fullName,
-        phone,
-        address,
-      });
-    } else {
-      // Generate user code for tenant
-      const userCode = await AuthService.generateUserCode('TENANT')
-      
-      // Create TENANT user
-      registeredUser = await prisma.user.create({
-        data: {
-          email,
-          password: hashedPassword,
-          name: fullName,
-          role: 'TENANT',
-          isValid: true,
-          emailVerified: true,
-          phoneVerified: false,
-          tenant: {
-            create: {
-              userCode,
-              phone,
-              idCard: idCard || '',
-              address: address || null,
-              landlordId: '', // Empty until landlord invites them
-            },
-          },
-        },
-        include: {
-          tenant: true,
-        },
-      });
-    }
+    // Only landlords can self-register. Tenant accounts are created by landlords.
+    const registeredUser = await registerLandlord({
+      email,
+      password,
+      name: fullName,
+      phone,
+      address,
+    });
 
 
     // Cleanup: Delete used verification token
     prisma.verificationToken.deleteMany({
       where: { email }
-    }).catch(err => {
+    }).catch((err: unknown) => {
       console.error('Failed to cleanup verification tokens for', email, err);
     });
 
@@ -149,7 +113,7 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Registration error:', error);
     
     return NextResponse.json(

@@ -7,18 +7,15 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, User, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, Send, Check } from "lucide-react";
+import { Building2, CheckCircle, XCircle, Eye, EyeOff, ArrowRight, Send, Check } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/utils";
 import { validatePassword, getPasswordStrength } from "@/lib/validation/password-validation";
 import { motion, AnimatePresence } from "framer-motion";
 
-type UserRole = "LANDLORD" | "TENANT";
-
 export default function RegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<UserRole>("LANDLORD");
   const [error, setError] = useState("");
   const [shake, setShake] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
@@ -152,7 +149,7 @@ export default function RegisterPage() {
       const response = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...formData, role: selectedRole }),
+        body: JSON.stringify({ ...formData, role: "LANDLORD" }),
       });
 
       const data = await response.json();
@@ -195,31 +192,9 @@ export default function RegisterPage() {
             <p className="text-[11px] text-[#64748b]">Bắt đầu quản lý nhà trọ miễn phí ngay hôm nay</p>
           </div>
 
-          {/* Role selector */}
-          <div className="grid grid-cols-2 gap-2 mb-4 p-1 bg-[#f1f0ec] rounded-xl">
-            {(["LANDLORD", "TENANT"] as UserRole[]).map((role) => {
-              const active = selectedRole === role;
-              return (
-                <motion.button
-                  key={role}
-                  type="button"
-                  onClick={() => { setSelectedRole(role); setError(""); }}
-                  whileTap={{ scale: 0.97 }}
-                  className={cn(
-                    "flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg text-sm font-medium transition-all duration-200",
-                    active
-                      ? "bg-white text-[#1f2116] shadow-sm border border-[#e2e0d8]"
-                      : "text-[#64748b] hover:text-[#1f2116]"
-                  )}
-                >
-                  {role === "LANDLORD"
-                    ? <Building2 className={cn("h-4 w-4", active ? "text-[#fdb549]" : "")} strokeWidth={1.75} />
-                    : <User className={cn("h-4 w-4", active ? "text-[#fdb549]" : "")} strokeWidth={1.75} />
-                  }
-                  {role === "LANDLORD" ? "Chủ Nhà" : "Người Thuê"}
-                </motion.button>
-              );
-            })}
+          <div className="mb-4 flex items-center gap-2 rounded-xl border border-[#e2e0d8] bg-white px-4 py-3 text-sm text-[#1f2116]">
+            <Building2 className="h-4 w-4 text-[#fdb549]" strokeWidth={1.75} />
+            Đăng ký tài khoản Chủ Nhà. Tài khoản Người Thuê sẽ do Chủ Nhà tạo và cấp mật khẩu.
           </div>
 
           {/* Form */}

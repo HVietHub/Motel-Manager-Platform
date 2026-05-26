@@ -35,9 +35,9 @@ export const authOptions: NextAuthOptions = {
           },
         });
 
-        // Check if user exists
+        // Use a generic error message to avoid revealing whether the email exists
         if (!user) {
-          throw new Error('Tài khoản không tồn tại');
+          throw new Error('Tài khoản hoặc mật khẩu không đúng');
         }
 
         // Verify password
@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
         );
 
         if (!isValidPassword) {
-          throw new Error('Mật khẩu không đúng');
+          throw new Error('Tài khoản hoặc mật khẩu không đúng');
         }
 
         // Return user object with role-specific data

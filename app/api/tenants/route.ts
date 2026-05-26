@@ -138,11 +138,18 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { landlordId, name, email, phone, idCard, address } = body;
+    const { landlordId, name, email, phone, password, idCard, address, roomId } = body;
 
-    if (!landlordId || !name || !email || !phone) {
+    if (!landlordId || !name || !email || !phone || !password) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Vui lòng nhập đầy đủ họ tên, email, số điện thoại và mật khẩu" },
+        { status: 400 }
+      );
+    }
+
+    if (password.length < 8) {
+      return NextResponse.json(
+        { error: "Mật khẩu phải có ít nhất 8 ký tự" },
         { status: 400 }
       );
     }
@@ -159,9 +166,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate random password
-    const randomPassword = Math.random().toString(36).slice(-8);
-    const hashedPassword = await bcrypt.hash(randomPassword, 10);
+    let selectedRoom = null;
+    if (roomId) {
+      selectedRoom = await prisma.room.findFirst({
+        where: {
+          id: roomId,
+          building: {
+            landlordId,
+          },
+          status: "AVAILABLE",
+        },
+      });
+
+      if (!selectedRoom) {
+        return NextResponse.json(
+          { error: "Phòng không tồn tại hoặc không còn trống" },
+          { status: 400 }
+        );
+      }
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
 
     // Generate unique userCode for tenant (TN001, TN002, ...)
     const tenantCount = await prisma.tenant.count();
@@ -178,9 +203,11 @@ export async function POST(request: NextRequest) {
           create: {
             userCode,
             landlordId,
+            invitationStatus: "accepted",
             phone,
             idCard,
             address,
+            roomId: roomId || null,
           },
         },
       },
@@ -189,6 +216,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    if (selectedRoom) {
+      await prisma.room.update({
+        where: { id: selectedRoom.id },
+        data: { status: "OCCUPIED" },
+      });
+    }
+
     return NextResponse.json({
       tenant: user.tenant,
       user: {
@@ -196,7 +230,10 @@ export async function POST(request: NextRequest) {
         name: user.name,
         email: user.email,
       },
-      temporaryPassword: randomPassword,
+      credentials: {
+        email: user.email,
+        password,
+      },
     }, { status: 201 });
   } catch (error) {
     console.error("Create tenant error:", error);

@@ -39,35 +39,78 @@ import {
   ArrowRightLeft,
   FileText,
   Receipt,
-  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 
+type Building = {
+  id: string;
+  name: string;
+};
+
+type Room = {
+  id: string;
+  roomNumber: string;
+  price: number;
+  building?: Building | null;
+};
+
+type Contract = {
+  id: string;
+  status: string;
+};
+
+type PaymentSummary = {
+  status: "PAID" | "UNPAID" | "OVERDUE" | "NO_INVOICE";
+  unpaidInvoiceCount: number;
+  overdueInvoiceCount: number;
+  currentMonth: number;
+  currentYear: number;
+};
+
+type Tenant = {
+  id: string;
+  phone?: string | null;
+  idCard?: string | null;
+  address?: string | null;
+  user?: {
+    id: string;
+    name?: string | null;
+    email?: string | null;
+  } | null;
+  room?: Room | null;
+  contracts?: Contract[];
+  paymentSummary?: PaymentSummary;
+};
+
 export default function TenantsPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"accepted" | "pending">("accepted");
-  const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isAssignRoomDialogOpen, setIsAssignRoomDialogOpen] = useState(false);
   const [isChangeRoomDialogOpen, setIsChangeRoomDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
-  const [selectedTenant, setSelectedTenant] = useState<any | null>(null);
-  const [tenants, setTenants] = useState<any[]>([]);
-  const [pendingTenants, setPendingTenants] = useState<any[]>([]);
-  const [rooms, setRooms] = useState<any[]>([]);
+  const [selectedTenant, setSelectedTenant] = useState<Tenant | null>(null);
+  const [tenants, setTenants] = useState<Tenant[]>([]);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const landlordId = useLandlordId();
-  const [inviteUserCode, setInviteUserCode] = useState("");
   const [selectedRoomId, setSelectedRoomId] = useState("");
-  const [buildings, setBuildings] = useState<any[]>([]);
+  const [buildings, setBuildings] = useState<Building[]>([]);
   const [selectedBuildingId, setSelectedBuildingId] = useState("");
-  const [availableRoomsForInvite, setAvailableRoomsForInvite] = useState<any[]>([]);
+  const [availableRoomsForCreate, setAvailableRoomsForCreate] = useState<Room[]>([]);
+  const [newTenant, setNewTenant] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    password: "",
+    idCard: "",
+    address: "",
+  });
 
   useEffect(() => {
     if (landlordId) {
       fetchTenants(landlordId);
-      fetchPendingTenants(landlordId);
       fetchAvailableRooms(landlordId);
       fetchBuildings(landlordId);
     } else {
@@ -83,15 +126,6 @@ export default function TenantsPage() {
       toast.error("Không thể tải danh sách người thuê");
     } finally {
       setIsLoading(false);
-    }
-  };
-
-  const fetchPendingTenants = async (id: string) => {
-    try {
-      const res = await fetch(`/api/tenants/pending?landlordId=${id}`);
-      if (res.ok) setPendingTenants(await res.json());
-    } catch {
-      console.error("Error fetching pending tenants");
     }
   };
 
@@ -119,7 +153,7 @@ export default function TenantsPage() {
       const res = await fetch(
         `/api/rooms?landlordId=${landlordId}&buildingId=${buildingId}&status=AVAILABLE`
       );
-      if (res.ok) setAvailableRoomsForInvite(await res.json());
+      if (res.ok) setAvailableRoomsForCreate(await res.json());
     } catch {
       console.error("Error fetching rooms by building");
     }
@@ -132,54 +166,49 @@ export default function TenantsPage() {
       t.phone?.includes(searchQuery)
   );
 
-  const handleInvite = async () => {
-    if (!landlordId || !inviteUserCode) {
-      toast.error("Vui lòng nhập mã người dùng");
-      return;
-    }
-    if (!selectedRoomId) {
-      toast.error("Vui lòng chọn phòng");
-      return;
-    }
-    try {
-      const res = await fetch("/api/tenants/invite", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ landlordId, userCode: inviteUserCode, roomId: selectedRoomId }),
-      });
-      if (res.ok) {
-        toast.success("Đã gửi lời mời cho người thuê!");
-        setIsInviteDialogOpen(false);
-        setInviteUserCode("");
-        setSelectedRoomId("");
-        setSelectedBuildingId("");
-        setAvailableRoomsForInvite([]);
-        fetchPendingTenants(landlordId);
-        fetchAvailableRooms(landlordId);
-        setActiveTab("pending");
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Không thể mời người thuê");
-      }
-    } catch {
-      toast.error("Đã xảy ra lỗi");
-    }
+  const resetCreateForm = () => {
+    setNewTenant({
+      name: "",
+      email: "",
+      phone: "",
+      password: "",
+      idCard: "",
+      address: "",
+    });
+    setSelectedRoomId("");
+    setSelectedBuildingId("");
+    setAvailableRoomsForCreate([]);
   };
 
-  const handleCancelInvite = async (tenant: any) => {
+  const handleCreateTenant = async () => {
     if (!landlordId) return;
+
+    if (!newTenant.name || !newTenant.email || !newTenant.phone || !newTenant.password) {
+      toast.error("Vui lòng nhập đầy đủ họ tên, email, số điện thoại và mật khẩu");
+      return;
+    }
+
     try {
-      const res = await fetch("/api/tenants/invite", {
-        method: "DELETE",
+      const res = await fetch("/api/tenants", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tenantId: tenant.id, landlordId }),
+        body: JSON.stringify({
+          landlordId,
+          ...newTenant,
+          roomId: selectedRoomId || undefined,
+        }),
       });
+
+      const data = await res.json();
+
       if (res.ok) {
-        toast.success("Đã hủy lời mời!");
-        fetchPendingTenants(landlordId);
+        toast.success("Đã thêm người thuê và tạo tài khoản đăng nhập!");
+        setIsCreateDialogOpen(false);
+        resetCreateForm();
+        fetchTenants(landlordId);
+        fetchAvailableRooms(landlordId);
       } else {
-        const err = await res.json();
-        toast.error(err.error || "Không thể hủy lời mời");
+        toast.error(data.error || "Không thể thêm người thuê");
       }
     } catch {
       toast.error("Đã xảy ra lỗi");
@@ -241,9 +270,8 @@ export default function TenantsPage() {
   const handleDelete = async () => {
     if (!landlordId || !selectedTenant) return;
 
-    // Block delete if active contract exists
     const hasActiveContract = selectedTenant.contracts?.some(
-      (c: any) => c.status === "ACTIVE"
+      (c) => c.status === "ACTIVE"
     );
     if (hasActiveContract) {
       toast.error(
@@ -278,45 +306,27 @@ export default function TenantsPage() {
 
   return (
     <div className="p-8 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Quản Lý Người Thuê</h1>
-          <p className="text-muted-foreground mt-1">Quản lý thông tin người thuê trọ</p>
+          <p className="text-muted-foreground mt-1">
+            Quản lý người thuê và cấp tài khoản đăng nhập cho người thuê
+          </p>
         </div>
         <Button
           onClick={() => {
-            setInviteUserCode("");
-            setSelectedRoomId("");
-            setSelectedBuildingId("");
-            setAvailableRoomsForInvite([]);
-            setIsInviteDialogOpen(true);
+            resetCreateForm();
+            setIsCreateDialogOpen(true);
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Mời Người Thuê
+          Thêm Người Thuê
         </Button>
       </div>
 
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <CardTitle>Danh Sách Người Thuê</CardTitle>
-            <div className="flex gap-2">
-              <Button
-                variant={activeTab === "accepted" ? "default" : "outline"}
-                onClick={() => setActiveTab("accepted")}
-              >
-                Đã Chấp Nhận ({tenants.length})
-              </Button>
-              <Button
-                variant={activeTab === "pending" ? "default" : "outline"}
-                onClick={() => setActiveTab("pending")}
-              >
-                Đang Chờ ({pendingTenants.length})
-              </Button>
-            </div>
-          </div>
+          <CardTitle>Danh Sách Người Thuê ({tenants.length})</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center gap-2">
@@ -329,213 +339,217 @@ export default function TenantsPage() {
             />
           </div>
 
-          {/* ── Accepted tab ── */}
-          {activeTab === "accepted" ? (
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
+          <div className="border rounded-lg">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Họ Tên</TableHead>
+                  <TableHead>Tài Khoản</TableHead>
+                  <TableHead>Số Điện Thoại</TableHead>
+                  <TableHead>Phòng</TableHead>
+                  <TableHead className="text-center">Trạng Thái</TableHead>
+                  <TableHead className="text-center">Thanh Toán</TableHead>
+                  <TableHead className="text-right">Thao Tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoading ? (
                   <TableRow>
-                    <TableHead>Họ Tên</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Số Điện Thoại</TableHead>
-                    <TableHead>Phòng</TableHead>
-                    <TableHead className="text-center">Trạng Thái</TableHead>
-                    <TableHead className="text-center">Thanh Toán</TableHead>
-                    <TableHead className="text-right">Thao Tác</TableHead>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      Đang tải danh sách người thuê...
+                    </TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTenants.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={7} className="text-center py-8">
-                        <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">
-                          {searchQuery ? "Không tìm thấy người thuê nào" : "Chưa có người thuê nào"}
-                        </p>
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredTenants.map((tenant) => (
-                      <TableRow key={tenant.id}>
-                        <TableCell className="font-medium">{tenant.user?.name || "N/A"}</TableCell>
-                        <TableCell>{tenant.user?.email || "N/A"}</TableCell>
-                        <TableCell>{tenant.phone}</TableCell>
-                        <TableCell>
-                          {tenant.room ? (
-                            <div>
-                              <div className="font-medium">{tenant.room.roomNumber}</div>
-                              <div className="text-xs text-muted-foreground">
-                                {tenant.room.building?.name}
-                              </div>
+                ) : filteredTenants.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-8">
+                      <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">
+                        {searchQuery ? "Không tìm thấy người thuê nào" : "Chưa có người thuê nào"}
+                      </p>
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredTenants.map((tenant) => (
+                    <TableRow key={tenant.id}>
+                      <TableCell className="font-medium">{tenant.user?.name || "N/A"}</TableCell>
+                      <TableCell>{tenant.user?.email || "N/A"}</TableCell>
+                      <TableCell>{tenant.phone}</TableCell>
+                      <TableCell>
+                        {tenant.room ? (
+                          <div>
+                            <div className="font-medium">{tenant.room.roomNumber}</div>
+                            <div className="text-xs text-muted-foreground">
+                              {tenant.room.building?.name}
                             </div>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">Chưa gán</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {tenant.room ? (
-                            <Badge className="bg-blue-100 text-blue-700" variant="secondary">
-                              Đang Thuê
-                            </Badge>
-                          ) : (
-                            <Badge className="bg-gray-100 text-gray-700" variant="secondary">
-                              Chưa Thuê
-                            </Badge>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center">
-                          {tenant.paymentSummary?.status === "PAID" ? (
-                            <Badge className="bg-green-100 text-green-700" variant="secondary">Đã Đóng</Badge>
-                          ) : tenant.paymentSummary?.status === "OVERDUE" ? (
-                            <Badge className="bg-orange-100 text-orange-700" variant="secondary">Còn Nợ</Badge>
-                          ) : tenant.paymentSummary?.status === "UNPAID" ? (
-                            <Badge className="bg-red-100 text-red-700" variant="secondary">Chưa Đóng</Badge>
-                          ) : (
-                            <span className="text-muted-foreground text-sm">—</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            {/* Xem hợp đồng */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Xem hợp đồng"
-                              onClick={() =>
-                                router.push(`/landlord/contracts?tenantId=${tenant.id}`)
-                              }
-                            >
-                              <FileText className="h-4 w-4 text-indigo-600" />
-                            </Button>
-                            {/* Xem hóa đơn */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Xem hóa đơn"
-                              onClick={() =>
-                                router.push(`/landlord/invoices?tenantId=${tenant.id}`)
-                              }
-                            >
-                              <Receipt className="h-4 w-4 text-teal-600" />
-                            </Button>
-                            {/* Gán / Chuyển phòng */}
-                            {tenant.room ? (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Chuyển phòng"
-                                onClick={() => {
-                                  setSelectedTenant(tenant);
-                                  setSelectedRoomId("");
-                                  setIsChangeRoomDialogOpen(true);
-                                }}
-                              >
-                                <ArrowRightLeft className="h-4 w-4 text-blue-600" />
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                title="Gán phòng"
-                                onClick={() => {
-                                  setSelectedTenant(tenant);
-                                  setIsAssignRoomDialogOpen(true);
-                                }}
-                              >
-                                <UserPlus className="h-4 w-4 text-green-600" />
-                              </Button>
-                            )}
-                            {/* Xóa */}
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              title="Xóa người thuê"
-                              onClick={() => {
-                                setSelectedTenant(tenant);
-                                setIsDeleteDialogOpen(true);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4 text-red-600" />
-                            </Button>
                           </div>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          ) : (
-            /* ── Pending tab ── */
-            <div className="border rounded-lg">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Họ Tên</TableHead>
-                    <TableHead>Email</TableHead>
-                    <TableHead>Số Điện Thoại</TableHead>
-                    <TableHead className="text-center">Trạng Thái</TableHead>
-                    <TableHead className="text-right">Thao Tác</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingTenants.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8">
-                        <Users className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
-                        <p className="text-muted-foreground">Không có lời mời đang chờ</p>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">Chưa gán</span>
+                        )}
                       </TableCell>
-                    </TableRow>
-                  ) : (
-                    pendingTenants.map((tenant) => (
-                      <TableRow key={tenant.id}>
-                        <TableCell className="font-medium">{tenant.user?.name || "N/A"}</TableCell>
-                        <TableCell>{tenant.user?.email || "N/A"}</TableCell>
-                        <TableCell>{tenant.phone}</TableCell>
-                        <TableCell className="text-center">
-                          <Badge className="bg-orange-100 text-orange-700" variant="secondary">
-                            Đang Chờ Phản Hồi
+                      <TableCell className="text-center">
+                        {tenant.room ? (
+                          <Badge className="bg-blue-100 text-blue-700" variant="secondary">
+                            Đang Thuê
                           </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
+                        ) : (
+                          <Badge className="bg-gray-100 text-gray-700" variant="secondary">
+                            Chưa Thuê
+                          </Badge>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        {tenant.paymentSummary?.status === "PAID" ? (
+                          <Badge className="bg-green-100 text-green-700" variant="secondary">Đã Đóng</Badge>
+                        ) : tenant.paymentSummary?.status === "OVERDUE" ? (
+                          <Badge className="bg-orange-100 text-orange-700" variant="secondary">Còn Nợ</Badge>
+                        ) : tenant.paymentSummary?.status === "UNPAID" ? (
+                          <Badge className="bg-red-100 text-red-700" variant="secondary">Chưa Đóng</Badge>
+                        ) : (
+                          <span className="text-muted-foreground text-sm">—</span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
                           <Button
                             variant="ghost"
                             size="sm"
-                            title="Hủy lời mời"
-                            onClick={() => handleCancelInvite(tenant)}
+                            title="Xem hợp đồng"
+                            onClick={() =>
+                              router.push(`/landlord/contracts?tenantId=${tenant.id}`)
+                            }
                           >
-                            <X className="h-4 w-4 text-red-600" />
+                            <FileText className="h-4 w-4 text-indigo-600" />
                           </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </div>
-          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Xem hóa đơn"
+                            onClick={() =>
+                              router.push(`/landlord/invoices?tenantId=${tenant.id}`)
+                            }
+                          >
+                            <Receipt className="h-4 w-4 text-teal-600" />
+                          </Button>
+                          {tenant.room ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Chuyển phòng"
+                              onClick={() => {
+                                setSelectedTenant(tenant);
+                                setSelectedRoomId("");
+                                setIsChangeRoomDialogOpen(true);
+                              }}
+                            >
+                              <ArrowRightLeft className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              title="Gán phòng"
+                              onClick={() => {
+                                setSelectedTenant(tenant);
+                                setSelectedRoomId("");
+                                setIsAssignRoomDialogOpen(true);
+                              }}
+                            >
+                              <UserPlus className="h-4 w-4 text-green-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Xóa người thuê"
+                            onClick={() => {
+                              setSelectedTenant(tenant);
+                              setIsDeleteDialogOpen(true);
+                            }}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
-      {/* ── Invite Dialog ── */}
-      <Dialog open={isInviteDialogOpen} onOpenChange={setIsInviteDialogOpen}>
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Mời Người Thuê</DialogTitle>
+            <DialogTitle>Thêm Người Thuê</DialogTitle>
             <DialogDescription>
-              Nhập mã người dùng và chọn phòng để mời người thuê vào quản lý.
+              Chủ nhà tạo hồ sơ, tài khoản và mật khẩu để cấp cho người thuê đăng nhập.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="tenantName">Họ Tên</Label>
+                <Input
+                  id="tenantName"
+                  placeholder="Nguyễn Văn A"
+                  value={newTenant.name}
+                  onChange={(e) => setNewTenant((prev) => ({ ...prev, name: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tenantPhone">Số Điện Thoại</Label>
+                <Input
+                  id="tenantPhone"
+                  placeholder="0901234567"
+                  value={newTenant.phone}
+                  onChange={(e) => setNewTenant((prev) => ({ ...prev, phone: e.target.value }))}
+                />
+              </div>
+            </div>
             <div className="space-y-2">
-              <Label htmlFor="inviteUserCode">Mã Người Dùng</Label>
+              <Label htmlFor="tenantEmail">Email / Tài Khoản Đăng Nhập</Label>
               <Input
-                id="inviteUserCode"
-                placeholder="TN001"
-                value={inviteUserCode}
-                onChange={(e) => setInviteUserCode(e.target.value.toUpperCase())}
+                id="tenantEmail"
+                type="email"
+                placeholder="tenant@example.com"
+                value={newTenant.email}
+                onChange={(e) => setNewTenant((prev) => ({ ...prev, email: e.target.value }))}
               />
-              <p className="text-xs text-muted-foreground">Mã có dạng TN001, TN002, ...</p>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="tenantPassword">Mật Khẩu Cấp Cho Người Thuê</Label>
+              <Input
+                id="tenantPassword"
+                type="text"
+                placeholder="Tối thiểu 8 ký tự"
+                value={newTenant.password}
+                onChange={(e) => setNewTenant((prev) => ({ ...prev, password: e.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Sau khi tạo, chủ nhà đưa email và mật khẩu này cho người thuê để đăng nhập.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="tenantIdCard">CCCD/CMND</Label>
+                <Input
+                  id="tenantIdCard"
+                  placeholder="Tùy chọn"
+                  value={newTenant.idCard}
+                  onChange={(e) => setNewTenant((prev) => ({ ...prev, idCard: e.target.value }))}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="tenantAddress">Địa Chỉ</Label>
+                <Input
+                  id="tenantAddress"
+                  placeholder="Tùy chọn"
+                  value={newTenant.address}
+                  onChange={(e) => setNewTenant((prev) => ({ ...prev, address: e.target.value }))}
+                />
+              </div>
             </div>
             <div className="space-y-2">
               <Label>Tòa Nhà</Label>
@@ -548,7 +562,7 @@ export default function TenantsPage() {
                 }}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Chọn tòa nhà" />
+                  <SelectValue placeholder="Chọn tòa nhà nếu muốn gán phòng ngay" />
                 </SelectTrigger>
                 <SelectContent>
                   {buildings.map((b) => (
@@ -565,10 +579,10 @@ export default function TenantsPage() {
                     <SelectValue placeholder="Chọn phòng trống" />
                   </SelectTrigger>
                   <SelectContent>
-                    {availableRoomsForInvite.length === 0 ? (
+                    {availableRoomsForCreate.length === 0 ? (
                       <div className="p-2 text-sm text-muted-foreground">Không có phòng trống</div>
                     ) : (
-                      availableRoomsForInvite.map((r) => (
+                      availableRoomsForCreate.map((r) => (
                         <SelectItem key={r.id} value={r.id}>
                           Phòng {r.roomNumber} — {fmt(r.price)}
                         </SelectItem>
@@ -580,13 +594,12 @@ export default function TenantsPage() {
             )}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsInviteDialogOpen(false)}>Hủy</Button>
-            <Button onClick={handleInvite}>Mời Người Thuê</Button>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Hủy</Button>
+            <Button onClick={handleCreateTenant}>Thêm Người Thuê</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* ── Assign Room Dialog ── */}
       <Dialog open={isAssignRoomDialogOpen} onOpenChange={setIsAssignRoomDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -617,7 +630,6 @@ export default function TenantsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Change Room Dialog ── */}
       <Dialog open={isChangeRoomDialogOpen} onOpenChange={setIsChangeRoomDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -651,7 +663,6 @@ export default function TenantsPage() {
         </DialogContent>
       </Dialog>
 
-      {/* ── Delete Dialog ── */}
       <Dialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
         <DialogContent>
           <DialogHeader>

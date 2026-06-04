@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { payos } from '@/lib/payos'
+import { getPayos } from '@/lib/payos'
 import { PLAN_LIMITS, PlanTier } from '@/lib/constants/plans'
 
 type SubscriptionPayment = {
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       },
     })
 
-    const paymentLink = await payos.paymentRequests.create({
+    const paymentLink = await getPayos().paymentRequests.create({
       orderCode,
       amount,
       description,

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { prisma } from '@/lib/prisma'
-import { payos } from '@/lib/payos'
+import { getPayos } from '@/lib/payos'
 
 type SubscriptionPayment = {
   id: string
@@ -47,7 +47,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ plan: payment.plan, status: payment.status })
     }
 
-    const paymentLink = await payos.paymentRequests.get(numericOrderCode)
+    const paymentLink = await getPayos().paymentRequests.get(numericOrderCode)
     if (paymentLink.status !== 'PAID') {
       return NextResponse.json({ status: paymentLink.status })
     }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { payos } from '@/lib/payos'
+import { getPayos } from '@/lib/payos'
 
 type SubscriptionPayment = {
   id: string
@@ -23,7 +23,7 @@ const db = prisma as PrismaWithSubscriptionPayment
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const data = await payos.webhooks.verify(body)
+    const data = await getPayos().webhooks.verify(body)
 
     if (data.code !== '00') {
       return NextResponse.json({ ok: true })

@@ -62,20 +62,28 @@ export async function POST(
       );
     }
 
-    // Update tenant with room, landlordId (if self-registered), and update room status
-    await prisma.$transaction([
-      prisma.tenant.update({
+    // Update tenant with room, landlordId (if self-registered), release old room, and update new room status
+    await prisma.$transaction(async (tx) => {
+      if (tenant.roomId && tenant.roomId !== roomId) {
+        await tx.room.update({
+          where: { id: tenant.roomId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+
+      await tx.tenant.update({
         where: { id: params.id },
         data: { 
           roomId,
           landlordId, // Update landlordId for self-registered tenants
         },
-      }),
-      prisma.room.update({
+      });
+
+      await tx.room.update({
         where: { id: roomId },
         data: { status: "OCCUPIED" },
-      }),
-    ]);
+      });
+    });
 
     const updatedTenant = await prisma.tenant.findUnique({
       where: { id: params.id },

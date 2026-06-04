@@ -134,7 +134,7 @@ export function TenantForm({
       {!isEdit && (
         <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-900">
-            ℹ️ Mật khẩu sẽ được tạo tự động và gửi qua email cho người thuê
+            ℹ️ Mật khẩu mặc định là <strong>123456</strong>. Người thuê có thể đổi mật khẩu sau khi đăng nhập
           </p>
         </div>
       )}

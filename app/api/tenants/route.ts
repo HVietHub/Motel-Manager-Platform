@@ -138,21 +138,16 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { landlordId, name, email, phone, password, idCard, address, roomId } = body;
+    const { landlordId, name, email, phone, idCard, address, roomId } = body;
 
-    if (!landlordId || !name || !email || !phone || !password) {
+    if (!landlordId || !name || !email || !phone) {
       return NextResponse.json(
-        { error: "Vui lòng nhập đầy đủ họ tên, email, số điện thoại và mật khẩu" },
+        { error: "Vui lòng nhập đầy đủ họ tên, email và số điện thoại" },
         { status: 400 }
       );
     }
 
-    if (password.length < 8) {
-      return NextResponse.json(
-        { error: "Mật khẩu phải có ít nhất 8 ký tự" },
-        { status: 400 }
-      );
-    }
+    const password = "123456";
 
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({

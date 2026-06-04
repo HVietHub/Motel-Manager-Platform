@@ -26,8 +26,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (!user) {
-      console.log("User not found:", email);
+    if (!user || !user.isValid) {
+      console.log("User not found or inactive:", email);
       return NextResponse.json(
         { error: "Email hoặc mật khẩu không đúng" },
         { status: 401 }

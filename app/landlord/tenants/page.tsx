@@ -103,7 +103,6 @@ export default function TenantsPage() {
     name: "",
     email: "",
     phone: "",
-    password: "",
     idCard: "",
     address: "",
   });
@@ -171,7 +170,6 @@ export default function TenantsPage() {
       name: "",
       email: "",
       phone: "",
-      password: "",
       idCard: "",
       address: "",
     });
@@ -183,8 +181,8 @@ export default function TenantsPage() {
   const handleCreateTenant = async () => {
     if (!landlordId) return;
 
-    if (!newTenant.name || !newTenant.email || !newTenant.phone || !newTenant.password) {
-      toast.error("Vui lòng nhập đầy đủ họ tên, email, số điện thoại và mật khẩu");
+    if (!newTenant.name || !newTenant.email || !newTenant.phone) {
+      toast.error("Vui lòng nhập đầy đủ họ tên, email và số điện thoại");
       return;
     }
 
@@ -518,17 +516,9 @@ export default function TenantsPage() {
                 onChange={(e) => setNewTenant((prev) => ({ ...prev, email: e.target.value }))}
               />
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="tenantPassword">Mật Khẩu Cấp Cho Người Thuê</Label>
-              <Input
-                id="tenantPassword"
-                type="text"
-                placeholder="Tối thiểu 8 ký tự"
-                value={newTenant.password}
-                onChange={(e) => setNewTenant((prev) => ({ ...prev, password: e.target.value }))}
-              />
-              <p className="text-xs text-muted-foreground">
-                Sau khi tạo, chủ nhà đưa email và mật khẩu này cho người thuê để đăng nhập.
+            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm text-blue-900">
+                ℹ️ Mật khẩu mặc định là <strong>123456</strong>. Người thuê có thể đổi mật khẩu sau khi đăng nhập.
               </p>
             </div>
             <div className="grid grid-cols-2 gap-3">

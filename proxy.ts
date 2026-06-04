@@ -32,14 +32,23 @@ export default withAuth(
     // Role-based access control
     const role = token.role as string;
 
-    // Landlord trying to access tenant routes
-    if (path.startsWith('/tenant') && role !== 'TENANT') {
-      return NextResponse.redirect(new URL('/landlord/dashboard', req.url));
+    const dashboardPath =
+      role === 'ADMIN'
+        ? '/admin/dashboard'
+        : role === 'LANDLORD'
+          ? '/landlord/dashboard'
+          : '/tenant/dashboard';
+
+    if (path.startsWith('/admin') && role !== 'ADMIN') {
+      return NextResponse.redirect(new URL(dashboardPath, req.url));
     }
 
-    // Tenant trying to access landlord routes
+    if (path.startsWith('/tenant') && role !== 'TENANT') {
+      return NextResponse.redirect(new URL(dashboardPath, req.url));
+    }
+
     if (path.startsWith('/landlord') && role !== 'LANDLORD') {
-      return NextResponse.redirect(new URL('/tenant/dashboard', req.url));
+      return NextResponse.redirect(new URL(dashboardPath, req.url));
     }
 
     // Allow the request to proceed
@@ -85,6 +94,7 @@ export const config = {
      * - /login, /register (public pages)
      * - / (home page)
      */
+    '/admin/:path*',
     '/landlord/:path*',
     '/tenant/:path*',
   ],

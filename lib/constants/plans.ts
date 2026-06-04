@@ -7,8 +7,6 @@ export enum PlanTier {
   FREE = 'FREE',
   STARTER = 'STARTER',
   PRO = 'PRO',
-  BUSINESS = 'BUSINESS',
-  ENTERPRISE = 'ENTERPRISE',
 }
 
 export interface PlanLimits {
@@ -87,50 +85,10 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
       webhooks: true,
       exportData: true,
       advancedAnalytics: true,
-      aiChatbot: false,
+      aiChatbot: true,
       aiPredictions: false,
       multiUser: false,
       whiteLabel: false,
-    },
-  },
-
-  [PlanTier.BUSINESS]: {
-    maxBuildings: 15,
-    maxRooms: 150,
-    priceVnd: 599_000,
-    features: {
-      autoInvoice: true,
-      emailNotifications: true,
-      reports: true,
-      communityPosts: true,
-      apiAccess: true,
-      webhooks: true,
-      exportData: true,
-      advancedAnalytics: true,
-      aiChatbot: true,
-      aiPredictions: false,
-      multiUser: true,
-      whiteLabel: false,
-    },
-  },
-
-  [PlanTier.ENTERPRISE]: {
-    maxBuildings: -1,
-    maxRooms: -1,
-    priceVnd: 999_000,
-    features: {
-      autoInvoice: true,
-      emailNotifications: true,
-      reports: true,
-      communityPosts: true,
-      apiAccess: true,
-      webhooks: true,
-      exportData: true,
-      advancedAnalytics: true,
-      aiChatbot: true,
-      aiPredictions: true,
-      multiUser: true,
-      whiteLabel: true,
     },
   },
 }

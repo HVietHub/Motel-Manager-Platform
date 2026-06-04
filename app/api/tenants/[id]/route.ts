@@ -138,3 +138,76 @@ export async function PUT(
     );
   }
 }
+
+export async function DELETE(
+  request: NextRequest,
+  context: { params: Promise<{ id: string }> }
+) {
+  try {
+    const params = await context.params;
+    const body = await request.json();
+    const { landlordId } = body;
+
+    const tenant = await prisma.tenant.findFirst({
+      where: {
+        id: params.id,
+        landlordId,
+      },
+      include: {
+        contracts: {
+          select: {
+            id: true,
+            status: true,
+          },
+        },
+      },
+    });
+
+    if (!tenant) {
+      return NextResponse.json(
+        { error: "Người thuê không tồn tại hoặc không thuộc chủ nhà này" },
+        { status: 404 }
+      );
+    }
+
+    const hasActiveContract = tenant.contracts.some((contract) => contract.status === "ACTIVE");
+    if (hasActiveContract) {
+      return NextResponse.json(
+        { error: "Không thể xóa người thuê đang có hợp đồng hiệu lực" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.$transaction(async (tx) => {
+      if (tenant.roomId) {
+        await tx.room.update({
+          where: { id: tenant.roomId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+
+      await tx.tenant.update({
+        where: { id: tenant.id },
+        data: {
+          landlordId: "",
+          roomId: null,
+          invitationStatus: "none",
+          pendingRoomId: null,
+        },
+      });
+
+      await tx.user.update({
+        where: { id: tenant.userId },
+        data: { isValid: false },
+      });
+    });
+
+    return NextResponse.json({ message: "Đã xóa người thuê khỏi danh sách quản lý" });
+  } catch (error) {
+    console.error("Delete tenant error:", error);
+    return NextResponse.json(
+      { error: "Không thể xóa người thuê" },
+      { status: 500 }
+    );
+  }
+}

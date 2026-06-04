@@ -18,9 +18,37 @@ export class ContractService {
     monthlyRent: number
     depositAmount: number
     terms?: string
+    fileUrl?: string
+    fileName?: string
+    fileType?: string
   }) {
-    // TODO: implement
-    throw new Error('Not implemented')
+    return await prisma.contract.create({
+      data: {
+        roomId: data.roomId,
+        tenantId: data.tenantId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        rentAmount: data.monthlyRent,
+        depositAmount: data.depositAmount,
+        terms: data.terms,
+        fileUrl: data.fileUrl,
+        fileName: data.fileName,
+        fileType: data.fileType,
+        status: 'ACTIVE',
+      },
+      include: {
+        room: {
+          include: {
+            building: true,
+          },
+        },
+        tenant: {
+          include: {
+            user: true,
+          },
+        },
+      },
+    })
   }
 
   /**

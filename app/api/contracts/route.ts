@@ -169,6 +169,9 @@ export async function POST(request: NextRequest) {
         depositAmount: depositAmount || 0,
         terms,
         status: initialStatus,
+        fileUrl: body.fileUrl,
+        fileName: body.fileName,
+        fileType: body.fileType,
       },
       include: {
         tenant: {
@@ -190,6 +193,25 @@ export async function POST(request: NextRequest) {
           },
         },
       },
+    });
+
+    await prisma.$transaction(async (tx) => {
+      if (tenant.roomId && tenant.roomId !== roomId) {
+        await tx.room.update({
+          where: { id: tenant.roomId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+
+      await tx.tenant.update({
+        where: { id: tenantId },
+        data: { roomId },
+      });
+
+      await tx.room.update({
+        where: { id: roomId },
+        data: { status: "OCCUPIED" },
+      });
     });
 
     return NextResponse.json(contract, { status: 201 });

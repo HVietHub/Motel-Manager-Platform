@@ -18,7 +18,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -29,10 +28,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Label } from "@/components/ui/label";
-import { Plus, Search, Pencil, XCircle, FileText, X } from "lucide-react";
+import { Plus, Search, Pencil, XCircle, FileText, X, Download } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/auth/use-landlord-id";
+import { ContractForm, ContractFormData } from "@/components/forms/contract-form";
+import { uploadContractFile } from "@/lib/utils/file-upload";
 
 type ContractStatus = "ACTIVE" | "EXPIRED" | "TERMINATED" | "PENDING";
 
@@ -49,6 +49,9 @@ type Contract = {
   depositAmount: number;
   status: ContractStatus;
   terms?: string;
+  fileUrl?: string;
+  fileName?: string;
+  fileType?: string;
 };
 
 type Tenant = {
@@ -64,6 +67,7 @@ type Tenant = {
 type Room = {
   id: string;
   roomNumber: string;
+  price: number;
   building: {
     name: string;
   };
@@ -84,16 +88,8 @@ export default function ContractsPage() {
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [rooms, setRooms] = useState<Room[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const landlordId = useLandlordId();
-  const [formData, setFormData] = useState({
-    tenantId: "",
-    roomId: "",
-    startDate: "",
-    endDate: "",
-    rentAmount: "",
-    depositAmount: "",
-    terms: "",
-  });
 
   useEffect(() => {
     if (landlordId) {
@@ -126,6 +122,9 @@ export default function ContractsPage() {
         depositAmount: contract.depositAmount,
         status: contract.status,
         terms: contract.terms,
+        fileUrl: contract.fileUrl,
+        fileName: contract.fileName,
+        fileType: contract.fileType,
       }));
       setContracts(formattedContracts);
     } catch (error) {
@@ -197,15 +196,20 @@ export default function ContractsPage() {
     return matchesSearch && matchesStatus && matchesTenant;
   });
 
-  const handleCreate = async () => {
+  const handleCreate = async (data: ContractFormData) => {
     try {
       if (!landlordId) {
         return;
       }
 
-      if (!formData.tenantId || !formData.roomId || !formData.startDate || !formData.endDate || !formData.rentAmount) {
-        toast.error("Vui lòng điền đầy đủ thông tin");
-        return;
+      setIsSubmitting(true);
+
+      let fileUrl, fileName, fileType;
+      if (data.contractFile) {
+        const uploadResult = await uploadContractFile(data.contractFile);
+        fileUrl = uploadResult.url;
+        fileName = uploadResult.fileName;
+        fileType = uploadResult.fileType;
       }
 
       const response = await fetch("/api/contracts", {
@@ -213,13 +217,16 @@ export default function ContractsPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           landlordId,
-          tenantId: formData.tenantId,
-          roomId: formData.roomId,
-          startDate: formData.startDate,
-          endDate: formData.endDate,
-          rentAmount: parseFloat(formData.rentAmount),
-          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : 0,
-          terms: formData.terms,
+          tenantId: data.tenantId,
+          roomId: data.roomId,
+          startDate: new Date().toISOString(),
+          endDate: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+          rentAmount: 0,
+          depositAmount: 0,
+          terms: "",
+          fileUrl,
+          fileName,
+          fileType,
         }),
       });
 
@@ -228,65 +235,42 @@ export default function ContractsPage() {
         throw new Error(error.error || "Failed to create contract");
       }
 
-      toast.success("Tạo hợp đồng thành công!");
+      toast.success("Thêm hợp đồng thành công!");
       setIsCreateDialogOpen(false);
-      setFormData({
-        tenantId: "",
-        roomId: "",
-        startDate: "",
-        endDate: "",
-        rentAmount: "",
-        depositAmount: "",
-        terms: "",
-      });
       fetchContracts();
-      fetchRooms(); // Refresh available rooms
+      fetchRooms();
     } catch (error: any) {
       console.error("Create contract error:", error);
-      toast.error(error.message || "Không thể tạo hợp đồng");
+      toast.error(error.message || "Không thể thêm hợp đồng");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
-  const handleEdit = async () => {
+  const handleEdit = async (data: ContractFormData) => {
     try {
-      if (!landlordId || !selectedContract) {
+      if (!selectedContract) {
         return;
       }
 
-      const response = await fetch(`/api/contracts/${selectedContract.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          landlordId,
-          startDate: formData.startDate || selectedContract.startDate,
-          endDate: formData.endDate || selectedContract.endDate,
-          rentAmount: formData.rentAmount ? parseFloat(formData.rentAmount) : selectedContract.rentAmount,
-          depositAmount: formData.depositAmount ? parseFloat(formData.depositAmount) : selectedContract.depositAmount,
-          terms: formData.terms || selectedContract.terms,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update contract");
+      if (!data.contractFile) {
+        toast.error("Vui lòng chọn file hợp đồng");
+        return;
       }
 
-      toast.success("Cập nhật hợp đồng thành công!");
+      setIsSubmitting(true);
+
+      const uploadResult = await uploadContractFile(data.contractFile);
+
+      toast.success("Cập nhật file hợp đồng thành công!");
       setIsEditDialogOpen(false);
       setSelectedContract(null);
-      setFormData({
-        tenantId: "",
-        roomId: "",
-        startDate: "",
-        endDate: "",
-        rentAmount: "",
-        depositAmount: "",
-        terms: "",
-      });
       fetchContracts();
     } catch (error: any) {
-      console.error("Update contract error:", error);
-      toast.error(error.message || "Không thể cập nhật hợp đồng");
+      console.error("Upload error:", error);
+      toast.error(error.message || "Không thể upload file");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -333,7 +317,7 @@ export default function ContractsPage() {
         </div>
         <Button onClick={() => setIsCreateDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
-          Tạo Hợp Đồng
+          Thêm Hợp Đồng
         </Button>
       </div>
 
@@ -398,7 +382,7 @@ export default function ContractsPage() {
                   <TableHead>Ngày Bắt Đầu</TableHead>
                   <TableHead>Ngày Kết Thúc</TableHead>
                   <TableHead className="text-right">Tiền Thuê</TableHead>
-                  <TableHead className="text-right">Tiền Cọc</TableHead>
+                  <TableHead className="text-center">File</TableHead>
                   <TableHead className="text-center">Trạng Thái</TableHead>
                   <TableHead className="text-right">Thao Tác</TableHead>
                 </TableRow>
@@ -406,7 +390,7 @@ export default function ContractsPage() {
               <TableBody>
                 {filteredContracts.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={8} className="text-center py-8">
+                    <TableCell colSpan={7} className="text-center py-8">
                       <FileText className="h-12 w-12 mx-auto text-muted-foreground mb-2" />
                       <p className="text-muted-foreground">
                         {searchQuery || statusFilter !== "all"
@@ -438,8 +422,20 @@ export default function ContractsPage() {
                       <TableCell className="text-right">
                         {formatCurrency(contract.rentAmount)}
                       </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(contract.depositAmount)}
+                      <TableCell className="text-center">
+                        {contract.fileUrl ? (
+                          <a
+                            href={contract.fileUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+                          >
+                            <Download className="h-4 w-4" />
+                            <span className="text-xs">{contract.fileName}</span>
+                          </a>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         {getStatusBadge(contract.status)}
@@ -478,176 +474,54 @@ export default function ContractsPage() {
 
       {/* Create Dialog */}
       <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Tạo Hợp Đồng Mới</DialogTitle>
+            <DialogTitle>Thêm Hợp Đồng</DialogTitle>
             <DialogDescription>
-              Nhập thông tin hợp đồng thuê trọ
+              Chọn người thuê, phòng và tải lên file hợp đồng
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="tenant">Người Thuê</Label>
-                <Select value={formData.tenantId} onValueChange={(value) => setFormData({ ...formData, tenantId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn người thuê" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {tenants.map((tenant) => (
-                      <SelectItem key={tenant.id} value={tenant.id}>
-                        {tenant.user.name}
-                        {tenant.room && ` (Đang ở ${tenant.room.roomNumber})`}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="room">Phòng</Label>
-                <Select value={formData.roomId} onValueChange={(value) => setFormData({ ...formData, roomId: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Chọn phòng" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {rooms.map((room) => (
-                      <SelectItem key={room.id} value={room.id}>
-                        {room.roomNumber} - {room.building.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Ngày Bắt Đầu</Label>
-                <Input 
-                  id="startDate" 
-                  type="date" 
-                  value={formData.startDate}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">Ngày Kết Thúc</Label>
-                <Input 
-                  id="endDate" 
-                  type="date" 
-                  value={formData.endDate}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="monthlyRent">Tiền Thuê Hàng Tháng (VNĐ)</Label>
-                <Input 
-                  id="monthlyRent" 
-                  type="number" 
-                  placeholder="2500000" 
-                  value={formData.rentAmount}
-                  onChange={(e) => setFormData({ ...formData, rentAmount: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="deposit">Tiền Cọc (VNĐ)</Label>
-                <Input 
-                  id="deposit" 
-                  type="number" 
-                  placeholder="5000000" 
-                  value={formData.depositAmount}
-                  onChange={(e) => setFormData({ ...formData, depositAmount: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="terms">Điều Khoản (Tùy chọn)</Label>
-              <textarea
-                id="terms"
-                className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Nhập các điều khoản hợp đồng..."
-                value={formData.terms}
-                onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleCreate}>Tạo Hợp Đồng</Button>
-          </DialogFooter>
+          <ContractForm
+            tenants={tenants.map(t => ({
+              id: t.id,
+              user: { name: t.user.name, email: '' },
+              room: t.room ? { roomNumber: t.room.roomNumber } : null,
+            }))}
+            rooms={rooms}
+            onSubmit={handleCreate}
+            onCancel={() => setIsCreateDialogOpen(false)}
+            isLoading={isSubmitting}
+            submitLabel="Thêm Hợp Đồng"
+          />
         </DialogContent>
       </Dialog>
 
       {/* Edit Dialog */}
       <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>Chỉnh Sửa Hợp Đồng</DialogTitle>
+            <DialogTitle>Cập Nhật File Hợp Đồng</DialogTitle>
             <DialogDescription>
-              Cập nhật thông tin hợp đồng
+              Thay đổi file hợp đồng
             </DialogDescription>
           </DialogHeader>
-          <div className="space-y-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-startDate">Ngày Bắt Đầu</Label>
-                <Input
-                  id="edit-startDate"
-                  type="date"
-                  defaultValue={selectedContract?.startDate?.split('T')[0]}
-                  onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-endDate">Ngày Kết Thúc</Label>
-                <Input
-                  id="edit-endDate"
-                  type="date"
-                  defaultValue={selectedContract?.endDate?.split('T')[0]}
-                  onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="edit-monthlyRent">Tiền Thuê Hàng Tháng (VNĐ)</Label>
-                <Input
-                  id="edit-monthlyRent"
-                  type="number"
-                  defaultValue={selectedContract?.rentAmount}
-                  onChange={(e) => setFormData({ ...formData, rentAmount: e.target.value })}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="edit-deposit">Tiền Cọc (VNĐ)</Label>
-                <Input
-                  id="edit-deposit"
-                  type="number"
-                  defaultValue={selectedContract?.depositAmount}
-                  onChange={(e) => setFormData({ ...formData, depositAmount: e.target.value })}
-                />
-              </div>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="edit-terms">Điều Khoản</Label>
-              <textarea
-                id="edit-terms"
-                className="w-full min-h-[100px] px-3 py-2 text-sm border rounded-md resize-none focus:outline-none focus:ring-2 focus:ring-ring"
-                placeholder="Nhập các điều khoản hợp đồng..."
-                defaultValue={selectedContract?.terms}
-                onChange={(e) => setFormData({ ...formData, terms: e.target.value })}
-              />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
-              Hủy
-            </Button>
-            <Button onClick={handleEdit}>Lưu Thay Đổi</Button>
-          </DialogFooter>
+          {selectedContract && (
+            <ContractForm
+              tenants={tenants.map(t => ({
+                id: t.id,
+                user: { name: t.user.name, email: '' },
+                room: t.room ? { roomNumber: t.room.roomNumber } : null,
+              }))}
+              rooms={rooms}
+              onSubmit={handleEdit}
+              onCancel={() => {
+                setIsEditDialogOpen(false);
+                setSelectedContract(null);
+              }}
+              isLoading={isSubmitting}
+              submitLabel="Cập Nhật"
+            />
+          )}
         </DialogContent>
       </Dialog>
     </div>

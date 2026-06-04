@@ -36,7 +36,7 @@ export const authOptions: NextAuthOptions = {
         });
 
         // Use a generic error message to avoid revealing whether the email exists
-        if (!user) {
+        if (!user || !user.isValid) {
           throw new Error('Tài khoản hoặc mật khẩu không đúng');
         }
 

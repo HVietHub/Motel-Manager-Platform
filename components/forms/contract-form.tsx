@@ -3,6 +3,7 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,16 +14,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { X, FileText } from "lucide-react";
 
 const contractSchema = z.object({
   tenantId: z.string().min(1, "Vui lòng chọn người thuê"),
   roomId: z.string().min(1, "Vui lòng chọn phòng"),
-  startDate: z.string().min(1, "Ngày bắt đầu là bắt buộc"),
-  endDate: z.string().min(1, "Ngày kết thúc là bắt buộc"),
-  price: z.number().positive("Giá thuê phải > 0"),
-}).refine((data) => new Date(data.startDate) < new Date(data.endDate), {
-  message: "Ngày bắt đầu phải trước ngày kết thúc",
-  path: ["endDate"],
+  contractFile: z.instanceof(File).optional(),
 });
 
 export type ContractFormData = z.infer<typeof contractSchema>;
@@ -36,15 +33,12 @@ type Tenant = {
 type Room = {
   id: string;
   roomNumber: string;
-  price: number;
-  status: string;
   building: { name: string };
 };
 
 type ContractFormProps = {
   tenants: Tenant[];
   rooms: Room[];
-  initialData?: Partial<ContractFormData>;
   onSubmit: (data: ContractFormData) => void | Promise<void>;
   onCancel?: () => void;
   isLoading?: boolean;
@@ -54,33 +48,57 @@ type ContractFormProps = {
 export function ContractForm({
   tenants,
   rooms,
-  initialData,
   onSubmit,
   onCancel,
   isLoading = false,
-  submitLabel = "Lưu",
+  submitLabel = "Tải Lên",
 }: ContractFormProps) {
   const {
-    register,
     handleSubmit,
     setValue,
     watch,
     formState: { errors },
   } = useForm<ContractFormData>({
     resolver: zodResolver(contractSchema),
-    defaultValues: initialData,
   });
 
-  const selectedRoomId = watch("roomId");
-  const selectedRoom = rooms.find((r) => r.id === selectedRoomId);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  // Auto-fill price when room is selected
-  const handleRoomChange = (roomId: string) => {
-    setValue("roomId", roomId);
-    const room = rooms.find((r) => r.id === roomId);
-    if (room && !initialData?.price) {
-      setValue("price", room.price);
+  const handleTenantChange = (tenantId: string) => {
+    setValue("tenantId", tenantId);
+    const tenant = tenants.find(t => t.id === tenantId);
+    if (tenant && tenant.room) {
+      const room = rooms.find(r => r.roomNumber === tenant.room?.roomNumber);
+      if (room) {
+        setValue("roomId", room.id);
+      }
     }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const validTypes = ['image/jpeg', 'image/png', 'image/jpg', 'application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+      const maxSize = 10 * 1024 * 1024;
+      
+      if (!validTypes.includes(file.type)) {
+        alert('Chỉ chấp nhận file ảnh (JPG, PNG), PDF hoặc DOCX');
+        return;
+      }
+      
+      if (file.size > maxSize) {
+        alert('File không được vượt quá 10MB');
+        return;
+      }
+      
+      setSelectedFile(file);
+      setValue("contractFile", file);
+    }
+  };
+
+  const removeFile = () => {
+    setSelectedFile(null);
+    setValue("contractFile", undefined);
   };
 
   return (
@@ -91,7 +109,7 @@ export function ContractForm({
         </Label>
         <Select
           value={watch("tenantId")}
-          onValueChange={(value) => setValue("tenantId", value)}
+          onValueChange={handleTenantChange}
           disabled={isLoading}
         >
           <SelectTrigger>
@@ -121,12 +139,12 @@ export function ContractForm({
           Phòng <span className="text-destructive">*</span>
         </Label>
         <Select
-          value={selectedRoomId}
-          onValueChange={handleRoomChange}
-          disabled={isLoading}
+          value={watch("roomId")}
+          onValueChange={(value) => setValue("roomId", value)}
+          disabled={isLoading || !watch("tenantId")}
         >
           <SelectTrigger>
-            <SelectValue placeholder="Chọn phòng" />
+            <SelectValue placeholder={watch("tenantId") ? "Chọn phòng" : "Chọn người thuê trước"} />
           </SelectTrigger>
           <SelectContent>
             {rooms.map((room) => (
@@ -134,13 +152,6 @@ export function ContractForm({
                 <div className="flex flex-col">
                   <span className="font-medium">
                     Phòng {room.roomNumber} - {room.building.name}
-                  </span>
-                  <span className="text-xs text-muted-foreground">
-                    {new Intl.NumberFormat("vi-VN", {
-                      style: "currency",
-                      currency: "VND",
-                    }).format(room.price)}
-                    {room.status === "OCCUPIED" && " • Đã có người"}
                   </span>
                 </div>
               </SelectItem>
@@ -152,60 +163,46 @@ export function ContractForm({
         )}
       </div>
 
-      <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="startDate">
-            Ngày Bắt Đầu <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="startDate"
-            type="date"
-            {...register("startDate")}
-            disabled={isLoading}
-          />
-          {errors.startDate && (
-            <p className="text-sm text-destructive">{errors.startDate.message}</p>
-          )}
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="endDate">
-            Ngày Kết Thúc <span className="text-destructive">*</span>
-          </Label>
-          <Input
-            id="endDate"
-            type="date"
-            {...register("endDate")}
-            disabled={isLoading}
-          />
-          {errors.endDate && (
-            <p className="text-sm text-destructive">{errors.endDate.message}</p>
-          )}
-        </div>
-      </div>
-
       <div className="space-y-2">
-        <Label htmlFor="price">
-          Giá Thuê (VNĐ) <span className="text-destructive">*</span>
+        <Label htmlFor="contractFile">
+          File Hợp Đồng (Tùy chọn)
         </Label>
-        <Input
-          id="price"
-          type="number"
-          placeholder="2500000"
-          {...register("price")}
-          disabled={isLoading}
-        />
-        {errors.price && (
-          <p className="text-sm text-destructive">{errors.price.message}</p>
-        )}
-        {selectedRoom && (
-          <p className="text-xs text-muted-foreground">
-            Giá phòng hiện tại: {new Intl.NumberFormat("vi-VN", {
-              style: "currency",
-              currency: "VND",
-            }).format(selectedRoom.price)}
-          </p>
-        )}
+        <div className="space-y-2">
+          {!selectedFile ? (
+            <div className="relative">
+              <Input
+                id="contractFile"
+                type="file"
+                accept="image/jpeg,image/png,image/jpg,.pdf,.docx"
+                onChange={handleFileChange}
+                disabled={isLoading}
+                className="cursor-pointer file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary file:text-primary-foreground hover:file:bg-primary/90"
+              />
+            </div>
+          ) : (
+            <div className="flex items-center gap-2 rounded-md border border-input bg-background p-3">
+              <FileText className="h-5 w-5 text-muted-foreground" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
+                <p className="text-xs text-muted-foreground">
+                  {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                </p>
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={removeFile}
+                disabled={isLoading}
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Hỗ trợ: JPG, PNG, PDF, DOCX
+        </p>
       </div>
 
       <div className="flex justify-end gap-2 pt-4">

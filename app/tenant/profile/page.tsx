@@ -1,20 +1,28 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useSession } from "next-auth/react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { User, Mail, Phone, CreditCard, MapPin, Copy, Check } from "lucide-react";
+import { User, Mail, Phone, CreditCard, MapPin, Copy, Check, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useTenantId } from "@/hooks/auth/use-tenant-id";
 
 export default function TenantProfilePage() {
   const tenantId = useTenantId();
+  const { data: session } = useSession();
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: "",
+  });
   const [tenantData, setTenantData] = useState({
     name: "",
     email: "",
@@ -104,6 +112,57 @@ export default function TenantProfilePage() {
     setCopiedField(fieldName);
     toast.success(`Đã sao chép ${fieldName}`);
     setTimeout(() => setCopiedField(null), 2000);
+  };
+
+  const handleChangePassword = async () => {
+    if (!session?.user?.id) {
+      toast.error("Không tìm thấy thông tin người dùng");
+      return;
+    }
+
+    if (!passwordData.currentPassword || !passwordData.newPassword || !passwordData.confirmPassword) {
+      toast.error("Vui lòng nhập đầy đủ thông tin");
+      return;
+    }
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      toast.error("Mật khẩu mới không khớp");
+      return;
+    }
+
+    if (passwordData.newPassword.length < 6) {
+      toast.error("Mật khẩu mới phải có ít nhất 6 ký tự");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId: session.user.id,
+          currentPassword: passwordData.currentPassword,
+          newPassword: passwordData.newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        toast.success("Đổi mật khẩu thành công!");
+        setIsChangingPassword(false);
+        setPasswordData({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: "",
+        });
+      } else {
+        toast.error(data.error || "Không thể đổi mật khẩu");
+      }
+    } catch (error) {
+      console.error("Change password error:", error);
+      toast.error("Đã xảy ra lỗi");
+    }
   };
 
   if (isLoading) {
@@ -357,6 +416,79 @@ export default function TenantProfilePage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Change Password Card */}
+      <Card className="border-none shadow-lg">
+        <CardHeader className="bg-gradient-to-r from-purple-50 to-pink-50">
+          <CardTitle className="flex items-center gap-2">
+            <Lock className="h-5 w-5 text-purple-600" />
+            Đổi Mật Khẩu
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-6">
+          {!isChangingPassword ? (
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Bảo mật tài khoản của bạn bằng cách thay đổi mật khẩu định kỳ
+              </p>
+              <Button onClick={() => setIsChangingPassword(true)}>
+                Đổi Mật Khẩu
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+                <Input
+                  id="currentPassword"
+                  type="password"
+                  placeholder="Nhập mật khẩu hiện tại"
+                  value={passwordData.currentPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, currentPassword: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="newPassword">Mật khẩu mới</Label>
+                <Input
+                  id="newPassword"
+                  type="password"
+                  placeholder="Nhập mật khẩu mới (tối thiểu 6 ký tự)"
+                  value={passwordData.newPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, newPassword: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="confirmPassword">Xác nhận mật khẩu mới</Label>
+                <Input
+                  id="confirmPassword"
+                  type="password"
+                  placeholder="Nhập lại mật khẩu mới"
+                  value={passwordData.confirmPassword}
+                  onChange={(e) => setPasswordData({ ...passwordData, confirmPassword: e.target.value })}
+                />
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setIsChangingPassword(false);
+                    setPasswordData({
+                      currentPassword: "",
+                      newPassword: "",
+                      confirmPassword: "",
+                    });
+                  }}
+                >
+                  Hủy
+                </Button>
+                <Button onClick={handleChangePassword}>
+                  Xác Nhận Đổi Mật Khẩu
+                </Button>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

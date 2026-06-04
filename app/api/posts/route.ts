@@ -87,24 +87,21 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Plan gate for LANDLORD: communityPosts requires Starter+
-    if (session!.user.role === 'LANDLORD') {
-      const landlord = await (prisma.landlord.findUnique as any)({
-        where: { id: landlordId },
-        select: { plan: true },
-      })
-      const plan = (landlord?.plan as PlanTier) ?? PlanTier.FREE
-      if (!planHasFeature(plan, 'communityPosts')) {
-        return NextResponse.json(
-          {
-            error: 'PLAN_REQUIRED',
-            message: `Tính năng cộng đồng yêu cầu gói Starter trở lên. Gói hiện tại: ${plan}.`,
-            requiredPlan: PlanTier.STARTER,
-            currentPlan: plan,
-          },
-          { status: 403 }
-        )
-      }
+    const landlord = await (prisma.landlord.findUnique as any)({
+      where: { id: landlordId },
+      select: { plan: true },
+    })
+    const plan = (landlord?.plan as PlanTier) ?? PlanTier.FREE
+    if (!planHasFeature(plan, 'communityPosts')) {
+      return NextResponse.json(
+        {
+          error: 'PLAN_REQUIRED',
+          message: `Tính năng cộng đồng yêu cầu chủ nhà sở hữu gói Starter trở lên. Gói hiện tại: ${plan}.`,
+          requiredPlan: PlanTier.STARTER,
+          currentPlan: plan,
+        },
+        { status: 403 }
+      )
     }
 
     const body = await request.json()

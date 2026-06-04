@@ -26,6 +26,18 @@ async function main() {
   // Create test accounts with specified passwords
   const landlordPassword = await bcrypt.hash("665209Az@", 10);
   const tenantPassword = await bcrypt.hash("665209Az@", 10);
+  const adminPassword = await bcrypt.hash("665209Az", 10);
+
+  const adminUser = await prisma.user.create({
+    data: {
+      email: "admin@gmail.com",
+      password: adminPassword,
+      name: "Admin HouseSea",
+      role: "ADMIN",
+    },
+  });
+
+  console.log("Created admin:", adminUser.email);
 
   const landlordUser = await prisma.user.create({
     data: {

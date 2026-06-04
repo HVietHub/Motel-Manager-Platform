@@ -62,8 +62,7 @@ export default function LoginPage() {
           return;
         }
 
-        if (session.user.role !== selectedRole) {
-          // Sign out immediately — don't leave a valid session for the wrong role
+        if (session.user.role !== "ADMIN" && session.user.role !== selectedRole) {
           await signOut({ redirect: false });
 
           const errorMsg =
@@ -78,7 +77,13 @@ export default function LoginPage() {
         }
 
         toast.success("Đăng nhập thành công!");
-        router.push(session.user.role === "LANDLORD" ? "/landlord/dashboard" : "/tenant/dashboard");
+        router.push(
+          session.user.role === "ADMIN"
+            ? "/admin/dashboard"
+            : session.user.role === "LANDLORD"
+              ? "/landlord/dashboard"
+              : "/tenant/dashboard"
+        );
       }
     } catch {
       setError("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại.");

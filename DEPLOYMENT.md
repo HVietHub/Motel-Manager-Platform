@@ -6,8 +6,8 @@ Truy cập **Vercel Dashboard** > **Project Settings** > **Environment Variables
 
 ### Database (Required)
 ```
-DATABASE_URL=postgresql://postgres:Ihatemyjob1@db.cckkqhkbuuotvzxctekv.supabase.co:5432/postgres
-DIRECT_URL=postgresql://postgres:Ihatemyjob1@db.cckkqhkbuuotvzxctekv.supabase.co:5432/postgres
+DATABASE_URL=postgresql://postgres.PROJECT_ID:PASSWORD@aws-0-REGION.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+DIRECT_URL=postgresql://postgres:PASSWORD@db.PROJECT_ID.supabase.co:5432/postgres
 ```
 
 ### NextAuth (Required)
@@ -42,8 +42,8 @@ GEMINI_API_KEY=your-gemini-api-key-here
 ```
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=465
-SMTP_USER=viethoangpham1204@gmail.com
-SMTP_PASS=kjks kync rzgz iwxm
+SMTP_USER=your-email@gmail.com
+SMTP_PASS=your-gmail-app-password
 ```
 
 ### Test Accounts (Optional)

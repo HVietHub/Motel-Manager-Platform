@@ -1,18 +1,22 @@
 import nodemailer from 'nodemailer';
 
-/**
- * Transporter configuration for sending emails
- * Uses environment variables for security.
- */
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '465'),
-  secure: true, // true for 465, false for other ports
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-});
+const createTransporter = () => {
+  const host = process.env.SMTP_HOST || 'smtp.gmail.com';
+  const port = parseInt(process.env.SMTP_PORT || '465', 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  if (!user || !pass) {
+    throw new Error('Missing SMTP_USER or SMTP_PASS environment variables');
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465,
+    auth: { user, pass },
+  });
+};
 
 
 /**
@@ -71,7 +75,7 @@ export const sendVerificationEmail = async (email: string, otp: string) => {
   };
 
   try {
-    const info = await transporter.sendMail(mailOptions);
+    const info = await createTransporter().sendMail(mailOptions);
     console.log('Verification email sent:', info.messageId);
     return { success: true };
   } catch (error) {

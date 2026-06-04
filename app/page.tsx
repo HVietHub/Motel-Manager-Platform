@@ -768,6 +768,7 @@ export default function HomePage() {
               </motion.div>
             </ScaleIn>
           </div>
+
         </div>
       </section>
 

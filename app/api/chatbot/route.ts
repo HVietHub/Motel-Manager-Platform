@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       context.role = session.user.role;
 
       if (session.user.role === 'LANDLORD' && session.user.landlordId) {
+        // Plan gate: AI Chatbot requires PRO
         const landlord = await (prisma.landlord.findUnique as any)({
           where: { id: session.user.landlordId },
           select: { plan: true },
@@ -30,7 +31,7 @@ export async function POST(request: NextRequest) {
           return NextResponse.json(
             {
               error: 'PLAN_REQUIRED',
-              message: `Tính năng AI Chatbot yêu cầu gói Pro trở lên. Gói hiện tại của bạn: ${plan}.`,
+              message: `Tính năng AI Chatbot yêu cầu gói Pro. Gói hiện tại của bạn: ${plan}.`,
               requiredPlan: PlanTier.PRO,
               currentPlan: plan,
             },

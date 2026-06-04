@@ -2,54 +2,53 @@
 
 import { useEffect, useState } from "react";
 import { useSession } from "next-auth/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { toast } from "sonner";
 import {
   Check,
   Minus,
-  Clock,
   CreditCard,
   Building2,
   Users,
   LayoutGrid,
-  Lock,
 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PLAN_LIMITS, PlanTier } from "@/lib/constants/plans";
-
-// ─── helpers ────────────────────────────────────────────────────────────────
 
 const formatCurrency = (amount: number) =>
   amount === 0 ? "Miễn phí" : `${amount.toLocaleString("vi-VN")}đ / tháng`;
 
 const PLAN_META: Record<PlanTier, { label: string; highlight: boolean }> = {
-  FREE:    { label: "Free",    highlight: false },
+  FREE: { label: "Free", highlight: false },
   STARTER: { label: "Starter", highlight: false },
-  PRO:     { label: "Pro",     highlight: true  },
+  PRO: { label: "Pro", highlight: true },
 };
 
 const FEATURE_LABELS: Record<keyof typeof PLAN_LIMITS.FREE.features, string> = {
-  autoInvoice:        "Tự động tạo hóa đơn",
+  autoInvoice: "Tự động tạo hóa đơn",
   emailNotifications: "Thông báo email tự động",
-  reports:            "Báo cáo doanh thu",
-  communityPosts:     "Cộng đồng người thuê",
-  apiAccess:          "Tích hợp API",
-  webhooks:           "Webhook sự kiện",
-  exportData:         "Export Excel / CSV",
-  advancedAnalytics:  "Analytics nâng cao",
-  aiChatbot:          "AI Chatbot thông minh",
-  aiPredictions:      "AI dự đoán & gợi ý giá",
-  multiUser:          "Multi-user & phân quyền",
-  whiteLabel:         "White-label thương hiệu",
+  reports: "Báo cáo doanh thu",
+  communityPosts: "Cộng đồng người thuê",
+  apiAccess: "Tích hợp API",
+  webhooks: "Webhook sự kiện",
+  exportData: "Export Excel / CSV",
+  advancedAnalytics: "Analytics nâng cao",
+  aiChatbot: "AI Chatbot thông minh",
+  aiPredictions: "AI dự đoán & gợi ý giá",
+  multiUser: "Multi-user & phân quyền",
+  whiteLabel: "White-label thương hiệu",
 };
-
-// ─── component ───────────────────────────────────────────────────────────────
 
 export default function LandlordPaymentPage() {
   const { data: session } = useSession();
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [currentPlan, setCurrentPlan] = useState<PlanTier | null>(null);
   const [stats, setStats] = useState<{ totalBuildings: number; totalRooms: number } | null>(null);
   const [loading, setLoading] = useState(true);
+  const [checkoutPlan, setCheckoutPlan] = useState<PlanTier | null>(null);
 
   useEffect(() => {
     const landlordId = session?.user?.landlordId;
@@ -68,12 +67,55 @@ export default function LandlordPaymentPage() {
       .finally(() => setLoading(false));
   }, [session?.user?.landlordId]);
 
+  useEffect(() => {
+    const orderCode = searchParams.get("orderCode");
+    if (!orderCode || !session?.user?.landlordId) return;
+
+    fetch("/api/payos/confirm", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ orderCode }),
+    })
+      .then((response) => response.json().then((data) => ({ response, data })))
+      .then(({ response, data }) => {
+        if (!response.ok) {
+          throw new Error(data.error || "Không thể xác nhận thanh toán");
+        }
+        if (data.status === "PAID") {
+          setCurrentPlan(data.plan as PlanTier);
+          toast.success(`Thanh toán thành công. Tài khoản đã lên gói ${PLAN_META[data.plan as PlanTier].label}.`);
+          router.replace("/landlord/payment");
+        } else {
+          toast.info(`Thanh toán đang ở trạng thái ${data.status}.`);
+        }
+      })
+      .catch((error) => toast.error(error instanceof Error ? error.message : "Không thể xác nhận thanh toán"));
+  }, [router, searchParams, session?.user?.landlordId]);
+
   const plans = Object.values(PlanTier);
+
+  async function handleCheckout(plan: PlanTier) {
+    try {
+      setCheckoutPlan(plan);
+      const response = await fetch("/api/payos/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ plan }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data.error || "Không thể tạo thanh toán");
+      }
+      window.location.href = data.checkoutUrl;
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Không thể tạo thanh toán");
+    } finally {
+      setCheckoutPlan(null);
+    }
+  }
 
   return (
     <div className="p-6 md:p-8 space-y-8 max-w-7xl mx-auto">
-
-      {/* ── Header ── */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2">
           <CreditCard className="h-6 w-6 text-amber-500" strokeWidth={1.5} />
@@ -84,7 +126,6 @@ export default function LandlordPaymentPage() {
         </p>
       </div>
 
-      {/* ── Current plan status ── */}
       <Card className="border-amber-200 bg-amber-50/40">
         <CardContent className="p-5 flex flex-wrap items-center gap-8">
           <div>
@@ -134,7 +175,6 @@ export default function LandlordPaymentPage() {
         </CardContent>
       </Card>
 
-      {/* ── Plan comparison ── */}
       <div>
         <h2 className="text-base font-semibold mb-4 flex items-center gap-2">
           <LayoutGrid className="h-4 w-4 text-muted-foreground" strokeWidth={1.5} />
@@ -146,17 +186,16 @@ export default function LandlordPaymentPage() {
             const meta = PLAN_META[tier];
             const limits = PLAN_LIMITS[tier];
             const isCurrent = currentPlan === tier;
+
             return (
               <Card
                 key={tier}
                 className={[
                   "relative flex flex-col",
-                  meta.highlight  ? "border-orange-400 shadow-md ring-1 ring-orange-300" : "",
+                  meta.highlight ? "border-orange-400 shadow-md ring-1 ring-orange-300" : "",
                   isCurrent && !meta.highlight ? "border-amber-400 shadow-sm" : "",
-
                 ].join(" ")}
               >
-                {/* badge */}
                 {(meta.highlight || isCurrent) && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
                     <span
@@ -178,7 +217,9 @@ export default function LandlordPaymentPage() {
                     {formatCurrency(limits.priceVnd)}
                   </p>
                   <p className="text-[11px] mt-1 text-muted-foreground">
-                    ≤ {limits.maxBuildings} nhà · {limits.maxRooms} phòng
+                    {limits.maxBuildings === -1 ? "Không giới hạn nhà" : `≤ ${limits.maxBuildings} nhà`}
+                    {" · "}
+                    {limits.maxRooms === -1 ? "∞ phòng" : `${limits.maxRooms} phòng`}
                   </p>
                 </CardHeader>
 
@@ -205,55 +246,22 @@ export default function LandlordPaymentPage() {
                       </div>
                     );
                   })}
+                  {tier !== PlanTier.FREE && (
+                    <Button
+                      className="w-full mt-4"
+                      disabled={isCurrent || checkoutPlan === tier}
+                      onClick={() => handleCheckout(tier)}
+                    >
+                      {isCurrent ? "Đang sử dụng" : checkoutPlan === tier ? "Đang tạo thanh toán..." : `Mua gói ${meta.label}`}
+                    </Button>
+                  )}
                 </CardContent>
               </Card>
             );
           })}
         </div>
-
-        <p className="text-[11px] text-muted-foreground mt-3 leading-relaxed">
-          * Thanh toán theo năm giảm 10%.
-        </p>
       </div>
 
-      {/* ── Coming Soon ── */}
-      <Card className="border-dashed border-2 border-amber-200 bg-amber-50/20">
-        <CardContent className="py-12 flex flex-col items-center text-center gap-3">
-          <div className="h-12 w-12 rounded-xl border border-amber-200 flex items-center justify-center">
-            <Lock className="h-5 w-5 text-amber-500" strokeWidth={1.5} />
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Clock className="h-3.5 w-3.5 text-amber-500" strokeWidth={1.5} />
-            <Badge variant="outline" className="text-amber-700 border-amber-300 text-xs font-semibold">
-              Coming Soon
-            </Badge>
-          </div>
-
-          <div>
-            <h3 className="text-lg font-semibold text-gray-800 mb-1">Thanh Toán Đang Được Phát Triển</h3>
-            <p className="text-sm text-muted-foreground max-w-md">
-              Hệ thống thanh toán trực tuyến đang được xây dựng. Sẽ hỗ trợ chuyển khoản ngân hàng,
-              ví điện tử (Momo, ZaloPay, VNPay) và thẻ tín dụng.
-            </p>
-          </div>
-
-          <div className="flex flex-wrap justify-center gap-2 mt-1 text-xs text-muted-foreground">
-            {["Chuyển khoản ngân hàng", "Momo · ZaloPay · VNPay", "Thẻ tín dụng / ghi nợ"].map((m) => (
-              <span key={m} className="bg-white border rounded-full px-3 py-1">{m}</span>
-            ))}
-          </div>
-
-          <p className="text-xs text-muted-foreground">
-            Cần hỗ trợ ngay? Liên hệ{" "}
-            <a href="mailto:support@housesea.vn" className="text-amber-600 underline underline-offset-2">
-              support@housesea.vn
-            </a>
-          </p>
-        </CardContent>
-      </Card>
-
-      {/* ── Policy ── */}
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-sm font-semibold">Chính Sách Gói Dịch Vụ</CardTitle>
@@ -273,7 +281,6 @@ export default function LandlordPaymentPage() {
           </div>
         </CardContent>
       </Card>
-
     </div>
   );
 }

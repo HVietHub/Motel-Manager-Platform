@@ -18,7 +18,7 @@ interface AppShellProps {
  */
 export function AppShell({ sidebar, topbar, children, extras, contentClassName }: AppShellProps) {
   return (
-    <div className="flex h-screen overflow-hidden">
+    <div className="flex h-dvh min-h-dvh overflow-hidden">
       {/* Sidebar */}
       {sidebar}
 

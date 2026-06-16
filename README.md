@@ -1,165 +1,261 @@
-# 🏠 HouseSea - Nền Tảng Quản Lý Nhà Trọ Thông Minh
+# HouseSea
 
-**Kết nối chủ nhà và người thuê - Quản lý nhà trọ dễ dàng, hiệu quả**
+HouseSea is a web-based rental property management platform for landlords, tenants, and administrators. The application centralizes building operations, room occupancy, tenant onboarding, contracts, billing, maintenance requests, community communication, analytics, and subscription payments in a single Next.js application.
 
-HouseSea là nền tảng quản lý nhà trọ toàn diện, giúp chủ nhà và người thuê quản lý mọi khía cạnh của việc cho thuê nhà trọ một cách dễ dàng và hiệu quả.
+## Overview
 
-## ✨ Tính Năng
+The platform is designed for rental businesses that need a structured workflow from property setup to monthly operations:
 
-### Dành cho Chủ Nhà
-- 🏢 **Quản lý tòa nhà và phòng trọ**: Theo dõi nhiều tòa nhà, phòng trọ với thông tin chi tiết
-- 👥 **Quản lý người thuê**: Lưu trữ thông tin người thuê, lịch sử thuê trọ
-- 📝 **Quản lý hợp đồng**: Tạo, cập nhật và theo dõi hợp đồng thuê trọ
-- 💰 **Quản lý hóa đơn**: Tạo hóa đơn tự động, theo dõi thanh toán
-- 🔔 **Gửi thông báo**: Thông báo đến người thuê về hóa đơn, bảo trì
-- 🔧 **Quản lý bảo trì**: Theo dõi yêu cầu bảo trì từ người thuê
-- 📊 **Báo cáo doanh thu**: Xem báo cáo doanh thu, công nợ chi tiết
+- Landlords manage buildings, rooms, tenants, contracts, invoices, notifications, maintenance requests, and reports.
+- Tenants access room information, contracts, invoices, notifications, maintenance requests, and community posts.
+- Administrators monitor users and platform-level activity.
+- Subscription payments are integrated through PayOS.
+- Data is stored in PostgreSQL and accessed through Prisma ORM.
 
-### Dành cho Người Thuê
-- 🏠 **Xem thông tin phòng**: Thông tin chi tiết về phòng đang thuê
-- 📄 **Xem hợp đồng**: Theo dõi hợp đồng thuê trọ
-- 💳 **Xem hóa đơn**: Kiểm tra hóa đơn hàng tháng
-- 🔔 **Nhận thông báo**: Nhận thông báo từ chủ nhà
-- 🛠️ **Yêu cầu bảo trì**: Gửi yêu cầu sửa chữa, bảo trì
+## Core Features
 
-## 🚀 Công Nghệ
+### Landlord workspace
 
-- **Framework**: Next.js 15 (App Router)
-- **Language**: TypeScript
-- **Database**: SQLite với Prisma ORM
-- **UI**: Tailwind CSS + shadcn/ui
-- **Authentication**: Custom JWT-based auth
-- **State Management**: React Hooks
+- Dashboard with operational metrics.
+- Building and room management.
+- Building-level electricity pricing and configurable water billing:
+  - fixed monthly water fee;
+  - metered water billing by cubic meter.
+- Monthly surcharges per building, such as parking, trash, internet, elevator, or shared cleaning fees.
+- Tenant management with invitation and room assignment workflows.
+- Contract management, including contract file upload.
+- Invoice creation and payment tracking.
+- Maintenance request tracking and status updates.
+- Broadcast notifications to tenants.
+- Community posts scoped to a landlord's tenant network.
+- Reports, analytics, trends, predictions, and recommendations.
+- Subscription plan purchase flow through PayOS.
 
-## 📦 Cài Đặt
+### Tenant workspace
 
-### Yêu cầu
-- Node.js 18+ 
-- npm hoặc yarn
+- Personal dashboard.
+- Room and building information.
+- Contract access.
+- Monthly invoice tracking.
+- Notification center.
+- Maintenance request submission.
+- Community feed participation.
+- Profile management.
 
-### Các bước cài đặt
+### Admin workspace
 
-1. **Clone repository**
-```bash
-git clone <repository-url>
-cd housesea
+- Admin dashboard.
+- User management.
+- Platform analytics endpoints.
+
+## Technology Stack
+
+- Framework: Next.js 16 with App Router
+- Language: TypeScript
+- UI: React 19, Tailwind CSS, Radix UI primitives, Lucide icons
+- Forms and validation: React Hook Form, Zod
+- Authentication: NextAuth.js
+- Database: PostgreSQL
+- ORM: Prisma
+- Payments: PayOS
+- AI integration: Google Generative AI
+- Storage integration: Supabase and Supabase S3-compatible storage
+- Testing: Jest
+- Deployment: Vercel
+
+## Project Structure
+
+```text
+.
+├── app/
+│   ├── admin/                 # Admin pages
+│   ├── api/                   # Route handlers for application APIs
+│   ├── landlord/              # Landlord dashboard and management pages
+│   ├── tenant/                # Tenant dashboard and self-service pages
+│   ├── community/             # Community post detail pages
+│   ├── login/                 # Authentication entry point
+│   └── register/              # Registration flow
+├── components/
+│   ├── forms/                 # Reusable form components
+│   ├── layout/                # Layout components
+│   └── ui/                    # Shared UI primitives
+├── hooks/                     # Client-side React hooks
+├── lib/
+│   ├── constants/             # Application constants and plan limits
+│   ├── services/              # Domain services and business logic
+│   ├── supabase/              # Supabase integration helpers
+│   ├── prisma.ts              # Prisma client singleton
+│   └── payos.ts               # PayOS client factory
+├── prisma/
+│   ├── schema.prisma          # Database schema
+│   └── seed.ts                # Optional seed script
+├── public/                    # Static assets
+├── tests/                     # Test suites
+├── vercel.json                # Vercel deployment configuration
+└── package.json
 ```
 
-2. **Cài đặt dependencies**
+## Domain Model
+
+The Prisma schema models the main rental-management workflow:
+
+- `User`: shared authentication identity for landlords and tenants.
+- `Landlord`: rental business owner profile and subscription plan.
+- `Tenant`: tenant profile, invitation state, assigned room, invoices, contracts, and maintenance requests.
+- `Building`: property grouping with utility pricing and water billing mode.
+- `BuildingSurcharge`: recurring building-level monthly fees.
+- `Room`: room-level rental information and occupancy status.
+- `Contract`: rental contract metadata and uploaded file information.
+- `Invoice`: monthly billing record for rent, electricity, water, services, and other charges.
+- `MaintenanceRequest`: repair or support requests from tenants.
+- `Notification`: tenant notifications from landlords.
+- `Post`, `Like`, `Comment`, `Share`: scoped community feed.
+- `SubscriptionPayment`: PayOS subscription payment tracking.
+- `AnalyticsCache` and `AnalyticsAuditLog`: analytics caching and audit records.
+
+## Environment Variables
+
+Create a `.env` file from `.env.example` and provide the required values for your environment.
+
+Required groups:
+
+```env
+DATABASE_URL="postgresql://..."
+DIRECT_URL="postgresql://..."
+
+NEXTAUTH_URL="http://localhost:3000"
+NEXTAUTH_SECRET="..."
+
+GEMINI_API_KEY="..."
+
+PAYOS_CLIENT_ID="..."
+PAYOS_API_KEY="..."
+PAYOS_CHECKSUM_KEY="..."
+
+NEXT_PUBLIC_SUPABASE_URL="..."
+NEXT_PUBLIC_SUPABASE_ANON_KEY="..."
+SUPABASE_SERVICE_ROLE_KEY="..."
+SUPABASE_PUBLISHABLE_KEY="..."
+SUPABASE_SECRET_KEY="..."
+
+SUPABASE_S3_ACCESS_KEY_ID="..."
+SUPABASE_S3_SECRET_ACCESS_KEY="..."
+SUPABASE_S3_ENDPOINT="..."
+SUPABASE_S3_REGION="..."
+```
+
+Do not commit real environment values to source control.
+
+## Local Development
+
+### Prerequisites
+
+- Node.js compatible with the project dependencies.
+- npm.
+- PostgreSQL database.
+- PayOS credentials if testing subscription payments.
+- Supabase credentials if testing storage or related integrations.
+
+### Install dependencies
+
 ```bash
 npm install
 ```
 
-3. **Thiết lập database**
-```bash
-# Tạo database và chạy migrations
-npx prisma db push
+### Generate Prisma Client
 
-# Seed dữ liệu mẫu
-npm run seed
+```bash
+npx prisma generate
 ```
 
-4. **Chạy development server**
+### Sync database schema
+
+For local development or controlled environments:
+
+```bash
+npx prisma db push
+```
+
+### Run the development server
+
 ```bash
 npm run dev
 ```
 
-5. **Mở trình duyệt**
-```
+Open the application at:
+
+```text
 http://localhost:3000
 ```
 
-## 🔑 Tài Khoản Test
-
-### Chủ Nhà
-- Email: `landlord@test.com`
-- Password: `TestPass@2024`
-
-### Người Thuê (Có phòng)
-- Email: `tenant1@test.com`
-- Password: `TestPass@2024`
-
-### Người Thuê (Chưa có phòng)
-- Email: `test1@example.com`
-- Password: `TestPass@2024`
-
-## 📁 Cấu Trúc Thư Mục
-
-```
-housesea/
-├── app/                      # Next.js App Router
-│   ├── api/                  # API routes
-│   │   ├── auth/            # Authentication endpoints
-│   │   ├── buildings/       # Building management
-│   │   ├── rooms/           # Room management
-│   │   ├── tenants/         # Tenant management
-│   │   ├── contracts/       # Contract management
-│   │   ├── invoices/        # Invoice management
-│   │   ├── notifications/   # Notification system
-│   │   └── maintenance/     # Maintenance requests
-│   ├── landlord/            # Landlord dashboard pages
-│   ├── tenant/              # Tenant dashboard pages
-│   ├── login/               # Login page
-│   └── register/            # Registration page
-├── components/              # React components
-│   ├── ui/                  # shadcn/ui components
-│   ├── landlord-sidebar.tsx
-│   └── tenant-sidebar.tsx
-├── lib/                     # Utility functions
-│   ├── prisma.ts           # Prisma client
-│   └── utils.ts            # Helper functions
-├── prisma/                  # Database
-│   ├── schema.prisma       # Database schema
-│   └── seed.ts             # Seed data
-└── public/                  # Static files
-```
-
-## 🗄️ Database Schema
-
-### Models
-- **User**: Người dùng (chủ nhà hoặc người thuê)
-- **Landlord**: Thông tin chủ nhà
-- **Tenant**: Thông tin người thuê
-- **Building**: Tòa nhà
-- **Room**: Phòng trọ
-- **Contract**: Hợp đồng thuê
-- **Invoice**: Hóa đơn
-- **Notification**: Thông báo
-- **MaintenanceRequest**: Yêu cầu bảo trì
-
-## 🛠️ Scripts
+## Available Scripts
 
 ```bash
-# Development
-npm run dev          # Chạy dev server
-
-# Database
-npx prisma studio    # Mở Prisma Studio
-npx prisma db push   # Đồng bộ schema với database
-npm run seed         # Seed dữ liệu mẫu
-
-# Build
-npm run build        # Build production
-npm start            # Chạy production server
+npm run dev            # Start the Next.js development server
+npm run build          # Build the production application
+npm run start          # Start the production server
+npm run lint           # Run ESLint
+npm run test           # Run Jest tests
+npm run test:watch     # Run Jest in watch mode
+npm run test:coverage  # Generate Jest coverage report
+npm run vercel-build   # Generate Prisma Client and build for Vercel
 ```
 
-## 🎨 Design System
+Useful Prisma commands:
 
-HouseSea sử dụng design system hiện đại với:
-- **Colors**: Gradient xanh dương đến indigo
-- **Typography**: Inter font family
-- **Components**: shadcn/ui components
-- **Icons**: Lucide React icons
-- **Responsive**: Mobile-first design
+```bash
+npx prisma generate    # Generate Prisma Client
+npx prisma db push     # Push schema changes to the configured database
+npx prisma studio      # Inspect and edit database records locally
+```
 
-## 📝 License
+## Deployment
 
-© 2026 HouseSea. All rights reserved.
+The project is configured for Vercel deployment.
 
-## 🤝 Contributing
+`vercel.json` defines:
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+```json
+{
+  "framework": "nextjs",
+  "regions": ["sin1"]
+}
+```
 
-## 📧 Contact
+Recommended deployment checklist:
 
-For support or questions, please contact us at support@housesea.com
+1. Configure all required environment variables in Vercel.
+2. Ensure the production database schema is up to date with Prisma.
+3. Deploy to production.
+4. Verify PayOS checkout, webhook, and payment confirmation flows.
+5. Verify file upload and Supabase-related flows if enabled.
+
+Example production deployment using Vercel CLI:
+
+```bash
+npx vercel deploy --prod
+```
+
+## Quality Checks
+
+Before shipping changes, run:
+
+```bash
+npx tsc --noEmit
+npm run lint
+npm run test
+```
+
+If ESLint scans generated build output, remove generated folders such as `.next` from the working tree or ensure they are excluded by the ESLint configuration.
+
+## Security Notes
+
+- Keep all credentials in environment variables.
+- Never commit `.env` files or production secrets.
+- Treat PayOS, Supabase, database, and NextAuth secrets as sensitive values.
+- Validate all server-side inputs before database writes.
+- Use landlord and tenant ownership checks when accessing scoped resources.
+
+## License
+
+This project is private and proprietary unless a license is added explicitly.

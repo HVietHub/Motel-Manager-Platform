@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { landlordId, name, address, description, electricityPrice, waterPrice } = body;
+    const { landlordId, name, address, description, electricityPrice, waterPrice, waterBillingType } = body;
 
     if (!landlordId || !name || !address) {
       return NextResponse.json(
@@ -80,6 +80,7 @@ export async function POST(request: NextRequest) {
     // Validate electricityPrice and waterPrice
     const finalElectricityPrice = electricityPrice !== undefined ? electricityPrice : 3000;
     const finalWaterPrice = waterPrice !== undefined ? waterPrice : 50000;
+    const finalWaterBillingType = waterBillingType === "METERED" ? "METERED" : "FIXED";
 
     if (finalElectricityPrice < 0) {
       return NextResponse.json(
@@ -112,6 +113,7 @@ export async function POST(request: NextRequest) {
         description,
         electricityPrice: finalElectricityPrice,
         waterPrice: finalWaterPrice,
+        waterBillingType: finalWaterBillingType,
       },
     });
 

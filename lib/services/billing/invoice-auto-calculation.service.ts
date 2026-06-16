@@ -6,6 +6,7 @@ export interface CreateInvoiceWithAutoCalculationParams {
   month: number;
   year: number;
   electricityUsage: number;
+  waterUsage?: number;
   serviceAmount?: number;
   otherAmount?: number;
   description?: string;
@@ -107,6 +108,8 @@ export class InvoiceAutoCalculationService {
       electricityUsage: params.electricityUsage,
       electricityPrice: tenant.room.building.electricityPrice,
       waterPrice: tenant.room.building.waterPrice,
+      waterBillingType: tenant.room.building.waterBillingType,
+      waterUsage: params.waterUsage,
       serviceAmount: (params.serviceAmount ?? 0) + surchargesTotal,
       otherAmount: params.otherAmount,
     });

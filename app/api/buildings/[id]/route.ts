@@ -41,7 +41,7 @@ export async function PUT(
   try {
     const { id } = await context.params;
     const body = await request.json();
-    const { name, address, description, electricityPrice, waterPrice } = body;
+    const { name, address, description, electricityPrice, waterPrice, waterBillingType } = body;
 
     // Validate electricityPrice and waterPrice if provided
     if (electricityPrice !== undefined && electricityPrice < 0) {
@@ -54,6 +54,13 @@ export async function PUT(
     if (waterPrice !== undefined && waterPrice < 0) {
       return NextResponse.json(
         { error: "Giá nước phải >= 0" },
+        { status: 400 }
+      );
+    }
+
+    if (waterBillingType !== undefined && !["FIXED", "METERED"].includes(waterBillingType)) {
+      return NextResponse.json(
+        { error: "Cách tính tiền nước không hợp lệ" },
         { status: 400 }
       );
     }
@@ -75,6 +82,7 @@ export async function PUT(
         ...(description !== undefined && { description }),
         ...(electricityPrice !== undefined && { electricityPrice }),
         ...(waterPrice !== undefined && { waterPrice }),
+        ...(waterBillingType !== undefined && { waterBillingType }),
       },
     });
 

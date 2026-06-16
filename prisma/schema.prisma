@@ -69,7 +69,8 @@ model Building {
   address          String
   description      String?
   electricityPrice Float    @default(3000)  // VNĐ/kWh
-  waterPrice       Float    @default(50000) // VNĐ/tháng
+  waterPrice       Float    @default(50000)
+  waterBillingType String   @default("FIXED") // FIXED | METERED
   landlord         Landlord @relation(fields: [landlordId], references: [id], onDelete: Cascade)
   rooms            Room[]
   surcharges       BuildingSurcharge[]

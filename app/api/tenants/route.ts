@@ -50,6 +50,9 @@ export async function GET(request: NextRequest) {
             building: {
               select: {
                 name: true,
+                electricityPrice: true,
+                waterPrice: true,
+                waterBillingType: true,
               },
             },
           },

@@ -64,6 +64,7 @@ type Tenant = {
       name: string;
       electricityPrice: number;
       waterPrice: number;
+      waterBillingType: string;
     };
   };
 };
@@ -86,6 +87,7 @@ export default function InvoicesPage() {
     electricityUsage: "",
     electricityAmount: "",
     waterAmount: "",
+    waterUsage: "",
     serviceAmount: "",
     otherAmount: "",
   });
@@ -155,6 +157,9 @@ export default function InvoicesPage() {
     }).format(amount);
   };
 
+  const selectedTenant = tenants.find((tenant) => tenant.id === formData.tenantId);
+  const isWaterMetered = selectedTenant?.room?.building.waterBillingType === "METERED";
+
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
       invoice.tenantName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -173,7 +178,7 @@ export default function InvoicesPage() {
         return;
       }
 
-      if (!formData.tenantId || !formData.month || !formData.year || formData.electricityUsage === "") {
+      if (!formData.tenantId || !formData.month || !formData.year || formData.electricityUsage === "" || (isWaterMetered && formData.waterUsage === "")) {
         toast.error("Vui lòng điền đầy đủ thông tin");
         return;
       }
@@ -187,6 +192,7 @@ export default function InvoicesPage() {
           month: parseInt(formData.month),
           year: parseInt(formData.year),
           electricityUsage: parseFloat(formData.electricityUsage),
+          waterUsage: isWaterMetered ? parseFloat(formData.waterUsage) : undefined,
           serviceAmount: formData.serviceAmount ? parseFloat(formData.serviceAmount) : 0,
           otherAmount: formData.otherAmount ? parseFloat(formData.otherAmount) : 0,
         }),
@@ -211,6 +217,7 @@ export default function InvoicesPage() {
         electricityUsage: "",
         electricityAmount: "",
         waterAmount: "",
+    waterUsage: "",
         serviceAmount: "",
         otherAmount: "",
       });
@@ -256,6 +263,7 @@ export default function InvoicesPage() {
         electricityUsage: "",
         electricityAmount: "",
         waterAmount: "",
+    waterUsage: "",
         serviceAmount: "",
         otherAmount: "",
       });
@@ -519,6 +527,20 @@ export default function InvoicesPage() {
                   onChange={(e) => setFormData({ ...formData, electricityUsage: e.target.value })}
                 />
               </div>
+              {isWaterMetered && (
+                <div className="space-y-2">
+                  <Label htmlFor="waterUsage">Số nước tiêu thụ (m³)</Label>
+                  <Input
+                    id="waterUsage"
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    placeholder="10"
+                    value={formData.waterUsage}
+                    onChange={(e) => setFormData({ ...formData, waterUsage: e.target.value })}
+                  />
+                </div>
+              )}
               <div className="space-y-2">
                 <Label htmlFor="serviceAmount">Phí dịch vụ (VNĐ)</Label>
                 <Input 

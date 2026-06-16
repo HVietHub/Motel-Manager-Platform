@@ -82,6 +82,7 @@ export async function POST(request: NextRequest) {
       month,
       year,
       electricityUsage,
+      waterUsage,
       serviceAmount,
       otherAmount,
       description,
@@ -95,7 +96,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate electricityUsage
     if (electricityUsage < 0) {
       return NextResponse.json(
         { error: "Số điện không hợp lệ" },
@@ -103,13 +103,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Warning for high electricity usage (not blocking)
+    if (waterUsage !== undefined && waterUsage < 0) {
+      return NextResponse.json(
+        { error: "Số nước không hợp lệ" },
+        { status: 400 }
+      );
+    }
+
     const warnings = [];
     if (electricityUsage > 1000) {
       warnings.push("Số điện tiêu thụ cao (>1000 kWh)");
     }
 
-    // Validate month and year
     if (month < 1 || month > 12) {
       return NextResponse.json(
         { error: "Tháng phải từ 1 đến 12" },
@@ -124,7 +129,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify tenant belongs to landlord
     const tenant = await prisma.tenant.findFirst({
       where: {
         id: tenantId,
@@ -146,25 +150,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify landlord owns the building
-    if (tenant.room?.building.landlordId !== landlordId) {
+    if (!tenant.room || tenant.room.building.landlordId !== landlordId) {
       return NextResponse.json(
         { error: "Unauthorized: Landlord does not own this building" },
         { status: 403 }
       );
     }
 
-    // Create invoice with auto-calculation
+    if (tenant.room.building.waterBillingType === "METERED" && waterUsage === undefined) {
+      return NextResponse.json(
+        { error: "Vui lòng nhập số khối nước" },
+        { status: 400 }
+      );
+    }
+
     const invoice = await invoiceAutoCalculationService.createInvoiceWithAutoCalculation({
       tenantId,
       month,
       year,
       electricityUsage,
+      waterUsage,
       serviceAmount,
       otherAmount,
       description,
       dueDate: dueDate ? new Date(dueDate) : undefined,
     });
+
 
     return NextResponse.json({
       invoice,

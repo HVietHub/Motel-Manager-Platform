@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -44,6 +45,7 @@ export default function CreateBuildingPage() {
     description: "",
     electricityPrice: "3000",
     waterPrice: "50000",
+    waterBillingType: "FIXED",
   });
 
   // Surcharges
@@ -109,6 +111,7 @@ export default function CreateBuildingPage() {
           description: info.description.trim() || undefined,
           electricityPrice,
           waterPrice,
+          waterBillingType: info.waterBillingType,
         }),
       });
 
@@ -209,9 +212,18 @@ export default function CreateBuildingPage() {
               <p className="text-xs text-muted-foreground">Mặc định: 3.000đ/kWh</p>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="water" className="flex items-center gap-1.5">
-                <Droplets className="h-3.5 w-3.5 text-[#90b1c4]" /> Giá nước (VNĐ/tháng)
+              <Label htmlFor="waterBillingType" className="flex items-center gap-1.5">
+                <Droplets className="h-3.5 w-3.5 text-[#90b1c4]" /> Cách tính tiền nước
               </Label>
+              <Select value={info.waterBillingType} onValueChange={(value) => setInfo({ ...info, waterBillingType: value })}>
+                <SelectTrigger id="waterBillingType">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="FIXED">Thu cố định hàng tháng</SelectItem>
+                  <SelectItem value="METERED">Tính theo số khối nước</SelectItem>
+                </SelectContent>
+              </Select>
               <Input
                 id="water"
                 type="number"
@@ -219,7 +231,9 @@ export default function CreateBuildingPage() {
                 value={info.waterPrice}
                 onChange={(e) => setInfo({ ...info, waterPrice: e.target.value })}
               />
-              <p className="text-xs text-muted-foreground">Mặc định: 50.000đ/tháng</p>
+              <p className="text-xs text-muted-foreground">
+                {info.waterBillingType === "METERED" ? "Đơn giá VNĐ/m³ nước" : "Số tiền cố định VNĐ/tháng"}
+              </p>
             </div>
           </div>
         </CardContent>

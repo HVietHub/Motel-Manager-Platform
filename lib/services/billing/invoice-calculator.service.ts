@@ -3,6 +3,8 @@ export interface InvoiceCalculationParams {
   electricityUsage: number
   electricityPrice: number
   waterPrice: number
+  waterBillingType?: string
+  waterUsage?: number
   serviceAmount?: number
   otherAmount?: number
 }
@@ -44,6 +46,9 @@ export class InvoiceCalculatorService {
     if (params.waterPrice < 0) {
       throw new Error('Water price must be non-negative')
     }
+    if (params.waterUsage !== undefined && params.waterUsage < 0) {
+      throw new Error('Water usage must be non-negative')
+    }
     if (params.serviceAmount !== undefined && params.serviceAmount < 0) {
       throw new Error('Service amount must be non-negative')
     }
@@ -53,7 +58,9 @@ export class InvoiceCalculatorService {
 
     const rentAmount = params.roomPrice
     const electricityAmount = params.electricityUsage * params.electricityPrice
-    const waterAmount = params.waterPrice
+    const waterAmount = params.waterBillingType === 'METERED'
+      ? (params.waterUsage ?? 0) * params.waterPrice
+      : params.waterPrice
     const serviceAmount = params.serviceAmount || 0
     const otherAmount = params.otherAmount || 0
 

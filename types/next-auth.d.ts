@@ -19,6 +19,7 @@ declare module 'next-auth' {
     landlordId?: string;
     tenantId?: string;
     rememberMe?: boolean;
+    subscriptionPlan?: string;
   }
 
   interface Session {
@@ -29,6 +30,7 @@ declare module 'next-auth' {
       role: string;
       landlordId?: string;
       tenantId?: string;
+      subscriptionPlan?: string;
     };
   }
 }
@@ -40,6 +42,7 @@ declare module 'next-auth/jwt' {
     landlordId?: string;
     tenantId?: string;
     rememberMe?: boolean;
+    subscriptionPlan?: string;
     exp?: number;
   }
 }

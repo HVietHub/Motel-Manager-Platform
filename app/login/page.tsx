@@ -339,7 +339,7 @@ export default function LoginPage() {
             {/* Email */}
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-sm font-medium text-[#1f2116]">
-                Email
+                Tài khoản
               </Label>
               <div className="relative">
                 <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" strokeWidth={1.75} />
@@ -347,7 +347,7 @@ export default function LoginPage() {
                   id="email"
                   type="email"
                   inputMode="email"
-                  placeholder="tenban@gmail.com"
+                  placeholder="example@gmail.com"
                   value={formData.email}
                   onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setError(""); }}
                   onFocus={() => setFormTouched({ ...formTouched, email: true })}
@@ -358,7 +358,6 @@ export default function LoginPage() {
                   )}
                 />
               </div>
-              <p className="text-xs leading-5 text-[#64748b]">Chỉ hỗ trợ email có đuôi @gmail.com.</p>
             </div>
 
             {/* Password */}

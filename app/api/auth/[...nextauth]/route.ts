@@ -30,11 +30,7 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: {
-            landlord: {
-              include: {
-                subscription: true,
-              },
-            },
+            landlord: true,
             tenant: true,
           },
         });
@@ -63,7 +59,7 @@ export const authOptions: NextAuthOptions = {
           landlordId: user.landlord?.id,
           tenantId: user.tenant?.id,
           rememberMe: credentials.rememberMe === 'true',
-          subscriptionPlan: user.landlord?.subscription?.plan,
+          subscriptionPlan: user.landlord?.plan,
         };
       },
     }),

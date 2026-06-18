@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { User, Mail, Phone, CreditCard, MapPin, Copy, Check, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { useTenantId } from "@/hooks/auth/use-tenant-id";
+import { NeonText } from "@/components/shared/neon-text";
 
 export default function TenantProfilePage() {
   const tenantId = useTenantId();
@@ -234,7 +235,11 @@ export default function TenantProfilePage() {
               />
             ) : (
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                <p className="font-medium">{tenantData.name}</p>
+                <NeonText 
+                  text={tenantData.name} 
+                  plan={session?.user?.subscriptionPlan}
+                  className="font-medium"
+                />
               </div>
             )}
           </div>

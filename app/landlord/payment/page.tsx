@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { PLAN_LIMITS, PlanTier } from "@/lib/constants/plans";
+import { NeonText } from "@/components/shared/neon-text";
 
 const formatCurrency = (amount: number) =>
   amount === 0 ? "Miễn phí" : `${amount.toLocaleString("vi-VN")}đ / tháng`;
@@ -209,14 +210,14 @@ export default function LandlordPaymentPage() {
                   </div>
                 )}
 
-                <CardHeader className="pb-2 pt-6 px-4">
-                  <p className="text-xs font-semibold uppercase tracking-widest mb-1 text-muted-foreground">
-                    {meta.label}
+                <CardHeader className="pb-2 pt-6 px-4 text-center">
+                  <p className="text-2xl font-bold uppercase tracking-wide mb-3">
+                    <NeonText text={meta.label} plan={tier} />
                   </p>
-                  <p className="text-xl font-bold leading-tight text-gray-900">
+                  <p className="text-lg font-semibold text-gray-700">
                     {formatCurrency(limits.priceVnd)}
                   </p>
-                  <p className="text-[11px] mt-1 text-muted-foreground">
+                  <p className="text-[11px] mt-2 text-muted-foreground">
                     {limits.maxBuildings === -1 ? "Không giới hạn nhà" : `≤ ${limits.maxBuildings} nhà`}
                     {" · "}
                     {limits.maxRooms === -1 ? "∞ phòng" : `${limits.maxRooms} phòng`}

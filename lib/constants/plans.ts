@@ -86,9 +86,9 @@ export const PLAN_LIMITS: Record<PlanTier, PlanLimits> = {
       exportData: true,
       advancedAnalytics: true,
       aiChatbot: true,
-      aiPredictions: false,
-      multiUser: false,
-      whiteLabel: false,
+      aiPredictions: true,
+      multiUser: true,
+      whiteLabel: true,
     },
   },
 }

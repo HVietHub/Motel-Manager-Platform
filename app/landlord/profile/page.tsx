@@ -9,6 +9,7 @@ import { User, Mail, Phone, MapPin, Building2 } from "lucide-react";
 import { toast } from "sonner";
 import { useLandlordId } from "@/hooks/auth/use-landlord-id";
 import { useSession } from "next-auth/react";
+import { NeonText } from "@/components/shared/neon-text";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -129,7 +130,10 @@ export default function ProfilePage() {
             </div>
             <div>
               <h3 className="text-xl font-semibold">
-                {formData.name || session?.user?.name}
+                <NeonText 
+                  text={formData.name || session?.user?.name || ""} 
+                  plan={session?.user?.subscriptionPlan}
+                />
                 {landlord?.userCode && (
                   <span className="text-sm font-mono text-muted-foreground ml-2">#{landlord.userCode}</span>
                 )}

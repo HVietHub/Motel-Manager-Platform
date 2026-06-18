@@ -21,7 +21,7 @@ export function NeonText({ text, plan, className }: NeonTextProps) {
   };
 
   return (
-    <span className={cn(getNeonClass(), className)}>
+    <span className={cn("inline-block bg-transparent", getNeonClass(), className)}>
       {text}
     </span>
   );

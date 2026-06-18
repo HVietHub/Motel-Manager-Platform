@@ -8,7 +8,7 @@ import { signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp, Mail, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/utils";
 import { motion } from "framer-motion";
@@ -30,13 +30,21 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
     setShake(false);
 
+    if (!formData.email || !formData.password) {
+      setError("Vui lòng điền đầy đủ thông tin email và mật khẩu.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       const result = await signIn("credentials", {
-        email: formData.email,
+        email: formData.email.trim().toLowerCase(),
         password: formData.password,
         rememberMe: formData.rememberMe,
         redirect: false,
@@ -317,11 +325,11 @@ export default function LoginPage() {
               </Label>
               <Input
                 id="email"
-                type="email"
-                placeholder="example@email.com"
+                type="text"
+                inputMode="email"
+                placeholder="example@gmail.com"
                 value={formData.email}
                 onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setError(""); }}
-                required
                 disabled={isLoading}
                 className={cn(
                   "h-11 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
@@ -342,7 +350,6 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setError(""); }}
-                  required
                   disabled={isLoading}
                   className={cn(
                     "h-11 pr-10 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
@@ -364,18 +371,23 @@ export default function LoginPage() {
             </div>
 
             {/* Remember me */}
-            <div className="flex items-center gap-2">
-              <input
-                id="rememberMe"
-                type="checkbox"
-                checked={formData.rememberMe}
-                onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                disabled={isLoading}
-                className="h-4 w-4 rounded border-[#e2e0d8] text-[#fdb549] focus:ring-[#fdb549]/30 cursor-pointer accent-[#fdb549]"
-              />
-              <Label htmlFor="rememberMe" className="text-sm text-[#64748b] cursor-pointer select-none">
-                Duy trì đăng nhập
-              </Label>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={formData.rememberMe}
+                  onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                  disabled={isLoading}
+                  className="h-4 w-4 rounded border-[#e2e0d8] text-[#fdb549] focus:ring-[#fdb549]/30 cursor-pointer accent-[#fdb549]"
+                />
+                <Label htmlFor="rememberMe" className="text-sm text-[#64748b] cursor-pointer select-none">
+                  Duy trì đăng nhập
+                </Label>
+              </div>
+              <Link href="/forgot-password" className="text-sm font-medium text-[#ed7307] hover:text-[#bf4514] transition-colors">
+                Quên mật khẩu?
+              </Link>
             </div>
 
             {/* Submit */}

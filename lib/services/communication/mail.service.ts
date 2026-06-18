@@ -18,6 +18,10 @@ const createTransporter = () => {
   });
 };
 
+
+/**
+ * Send an OTP verification email
+ */
 const buildOtpEmailHtml = (title: string, description: string, otp: string) => `
       <!DOCTYPE html>
       <html>

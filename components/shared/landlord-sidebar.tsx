@@ -33,6 +33,7 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useState } from "react";
 import { useSession, signOut } from "next-auth/react";
+import { NeonText } from "@/components/shared/neon-text";
 
 const menuItems = [
   {
@@ -184,7 +185,11 @@ export function LandlordTopBar() {
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" className="gap-2 h-auto py-2 px-2 sm:gap-3">
               <div className="hidden sm:flex flex-col items-end text-sm min-w-0">
-                <span className="font-medium max-w-40 truncate">{session?.user?.name || "Chủ Nhà"}</span>
+                <NeonText 
+                  text={session?.user?.name || "Chủ Nhà"} 
+                  plan={session?.user?.subscriptionPlan}
+                  className="font-medium max-w-40 truncate"
+                />
                 <span className="text-xs text-muted-foreground max-w-44 truncate">
                   {session?.user?.email || ""}
                 </span>

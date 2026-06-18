@@ -389,3 +389,58 @@
   transform: translateZ(0);
   backface-visibility: hidden;
 }
+
+/* Neon text effects for subscription plans */
+.neon-green {
+  color: #22c55e;
+  text-shadow: 
+    0 0 5px #22c55e,
+    0 0 10px #22c55e,
+    0 0 20px #22c55e,
+    0 0 40px #22c55e;
+  animation: neon-flicker-green 3s ease-in-out infinite;
+}
+
+.neon-red {
+  color: #ef4444;
+  text-shadow: 
+    0 0 5px #ef4444,
+    0 0 10px #ef4444,
+    0 0 20px #ef4444,
+    0 0 40px #ef4444;
+  animation: neon-flicker-red 3s ease-in-out infinite;
+}
+
+@keyframes neon-flicker-green {
+  0%, 100% {
+    text-shadow: 
+      0 0 5px #22c55e,
+      0 0 10px #22c55e,
+      0 0 20px #22c55e,
+      0 0 40px #22c55e;
+  }
+  50% {
+    text-shadow: 
+      0 0 2px #22c55e,
+      0 0 5px #22c55e,
+      0 0 10px #22c55e,
+      0 0 20px #22c55e;
+  }
+}
+
+@keyframes neon-flicker-red {
+  0%, 100% {
+    text-shadow: 
+      0 0 5px #ef4444,
+      0 0 10px #ef4444,
+      0 0 20px #ef4444,
+      0 0 40px #ef4444;
+  }
+  50% {
+    text-shadow: 
+      0 0 2px #ef4444,
+      0 0 5px #ef4444,
+      0 0 10px #ef4444,
+      0 0 20px #ef4444;
+  }
+}

@@ -30,7 +30,11 @@ export const authOptions: NextAuthOptions = {
         const user = await prisma.user.findUnique({
           where: { email: credentials.email },
           include: {
-            landlord: true,
+            landlord: {
+              include: {
+                subscription: true,
+              },
+            },
             tenant: true,
           },
         });
@@ -59,6 +63,7 @@ export const authOptions: NextAuthOptions = {
           landlordId: user.landlord?.id,
           tenantId: user.tenant?.id,
           rememberMe: credentials.rememberMe === 'true',
+          subscriptionPlan: user.landlord?.subscription?.plan,
         };
       },
     }),
@@ -96,6 +101,7 @@ export const authOptions: NextAuthOptions = {
         token.landlordId = user.landlordId;
         token.tenantId = user.tenantId;
         token.rememberMe = user.rememberMe;
+        token.subscriptionPlan = user.subscriptionPlan;
         
         // Set token expiry - 14 days for remember me, 1 day otherwise
         if (user.rememberMe) {
@@ -114,6 +120,7 @@ export const authOptions: NextAuthOptions = {
         session.user.role = token.role as string;
         session.user.landlordId = token.landlordId as string | undefined;
         session.user.tenantId = token.tenantId as string | undefined;
+        session.user.subscriptionPlan = token.subscriptionPlan as string | undefined;
       }
       return session;
     },

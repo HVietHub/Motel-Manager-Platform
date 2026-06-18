@@ -22,18 +22,13 @@ const createTransporter = () => {
 /**
  * Send an OTP verification email
  */
-export const sendVerificationEmail = async (email: string, otp: string) => {
-  const mailOptions = {
-    from: `"HouseSea Platform" <${process.env.SMTP_USER}>`,
-    to: email,
-    subject: `[HouseSea] Mã xác thực tài khoản của bạn`,
-    html: `
+const buildOtpEmailHtml = (title: string, description: string, otp: string) => `
       <!DOCTYPE html>
       <html>
       <head>
         <meta charset="utf-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Xác thực tài khoản HouseSea</title>
+        <title>${title}</title>
         <style>
           body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 0; background-color: #f4f4f5; }
           .container { max-width: 600px; margin: 20px auto; background: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
@@ -54,8 +49,8 @@ export const sendVerificationEmail = async (email: string, otp: string) => {
           </div>
           
           <div class="content">
-            <h2 class="greeting">Xác thực tài khoản</h2>
-            <p>Sử dụng mã bên dưới để hoàn tất đăng ký. Mã có hiệu lực trong 10 phút.</p>
+            <h2 class="greeting">${title}</h2>
+            <p>${description}</p>
             
             <div class="otp-container">
               <p class="otp-code">${otp}</p>
@@ -71,7 +66,14 @@ export const sendVerificationEmail = async (email: string, otp: string) => {
         </div>
       </body>
       </html>
-    `,
+    `;
+
+export const sendVerificationEmail = async (email: string, otp: string) => {
+  const mailOptions = {
+    from: `"HouseSea Platform" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `[HouseSea] Mã xác thực tài khoản của bạn`,
+    html: buildOtpEmailHtml('Xác thực tài khoản', 'Sử dụng mã bên dưới để hoàn tất đăng ký. Mã có hiệu lực trong 10 phút.', otp),
   };
 
   try {
@@ -80,6 +82,24 @@ export const sendVerificationEmail = async (email: string, otp: string) => {
     return { success: true };
   } catch (error) {
     console.error('Failed to send verification email:', error);
+    return { success: false, error };
+  }
+};
+
+export const sendPasswordResetEmail = async (email: string, otp: string) => {
+  const mailOptions = {
+    from: `"HouseSea Platform" <${process.env.SMTP_USER}>`,
+    to: email,
+    subject: `[HouseSea] Mã đặt lại mật khẩu của bạn`,
+    html: buildOtpEmailHtml('Đặt lại mật khẩu', 'Sử dụng mã bên dưới để cài lại mật khẩu mới. Mã có hiệu lực trong 10 phút.', otp),
+  };
+
+  try {
+    const info = await createTransporter().sendMail(mailOptions);
+    console.log('Password reset email sent:', info.messageId);
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to send password reset email:', error);
     return { success: false, error };
   }
 };

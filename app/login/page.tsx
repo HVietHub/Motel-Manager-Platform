@@ -8,7 +8,7 @@ import { signIn, signOut } from "next-auth/react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp } from "lucide-react";
+import { Building2, User, Shield, CheckCircle, Star, ArrowRight, Eye, EyeOff, TrendingUp, Mail, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { cn } from "@/lib/utils/utils";
 import { motion } from "framer-motion";
@@ -27,16 +27,39 @@ export default function LoginPage() {
     password: "",
     rememberMe: false,
   });
+  const [formTouched, setFormTouched] = useState({
+    email: false,
+    password: false,
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError("");
     setShake(false);
 
+    setFormTouched({ email: true, password: true });
+
+    if (!formData.email || !formData.password) {
+      setError("Vui lòng điền đầy đủ thông tin email và mật khẩu.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    const normalizedEmail = formData.email.trim().toLowerCase();
+
+    if (!normalizedEmail.endsWith("@gmail.com")) {
+      setError("Vui lòng đăng nhập bằng địa chỉ Gmail hợp lệ, ví dụ: tenban@gmail.com.");
+      setShake(true);
+      setTimeout(() => setShake(false), 500);
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
       const result = await signIn("credentials", {
-        email: formData.email,
+        email: normalizedEmail,
         password: formData.password,
         rememberMe: formData.rememberMe,
         redirect: false,
@@ -248,9 +271,12 @@ export default function LoginPage() {
           </div>
 
           {/* Header */}
-          <div className="mb-8">
-            <h2 className="text-3xl font-bold text-[#1f2116] mb-1.5">Đăng nhập</h2>
-            <p className="text-sm text-[#64748b]">Chào mừng bạn quay trở lại</p>
+          <div className="mb-8 rounded-3xl border border-white bg-white/80 p-6 shadow-sm shadow-[#1f2116]/5 backdrop-blur">
+            <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#fdb549]/15 text-[#ed7307]">
+              <Shield className="h-6 w-6" strokeWidth={1.75} />
+            </div>
+            <h2 className="text-3xl font-bold text-[#1f2116] mb-2">Đăng nhập</h2>
+            <p className="text-sm leading-6 text-[#64748b]">Chào mừng bạn quay trở lại. Vui lòng sử dụng tài khoản Gmail để tiếp tục.</p>
           </div>
 
           {/* Role selector */}
@@ -297,16 +323,16 @@ export default function LoginPage() {
             {error && (
               <motion.div
                 className={cn(
-                  "flex items-start gap-2.5 p-3 rounded-lg bg-red-50 border border-red-200 text-sm text-red-600",
+                  "flex items-start gap-3 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 shadow-sm",
                   shake && "animate-shake"
                 )}
-                initial={{ opacity: 0, scale: 0.97 }}
-                animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: -8, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
               >
-                <svg className="h-4 w-4 mt-0.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                {error}
+                <span className="mt-0.5 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
+                  <AlertCircle className="h-4 w-4" strokeWidth={2} />
+                </span>
+                <span className="leading-6">{error}</span>
               </motion.div>
             )}
 
@@ -315,19 +341,24 @@ export default function LoginPage() {
               <Label htmlFor="email" className="text-sm font-medium text-[#1f2116]">
                 Email
               </Label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="example@email.com"
-                value={formData.email}
-                onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setError(""); }}
-                required
-                disabled={isLoading}
-                className={cn(
-                  "h-11 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
-                  error && "border-red-300 focus-visible:ring-red-400/20"
-                )}
-              />
+              <div className="relative">
+                <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#94a3b8]" strokeWidth={1.75} />
+                <Input
+                  id="email"
+                  type="email"
+                  inputMode="email"
+                  placeholder="tenban@gmail.com"
+                  value={formData.email}
+                  onChange={(e) => { setFormData({ ...formData, email: e.target.value }); setError(""); }}
+                  onFocus={() => setFormTouched({ ...formTouched, email: true })}
+                  disabled={isLoading}
+                  className={cn(
+                    "h-12 rounded-xl bg-white pl-10 border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
+                    error && "border-red-300 focus-visible:ring-red-400/20"
+                  )}
+                />
+              </div>
+              <p className="text-xs leading-5 text-[#64748b]">Chỉ hỗ trợ email có đuôi @gmail.com.</p>
             </div>
 
             {/* Password */}
@@ -342,10 +373,10 @@ export default function LoginPage() {
                   placeholder="••••••••"
                   value={formData.password}
                   onChange={(e) => { setFormData({ ...formData, password: e.target.value }); setError(""); }}
-                  required
+                  onFocus={() => setFormTouched({ ...formTouched, password: true })}
                   disabled={isLoading}
                   className={cn(
-                    "h-11 pr-10 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
+                    "h-12 rounded-xl pr-10 bg-white border-[#e2e0d8] focus:border-[#fdb549] focus:ring-[#fdb549]/20 text-[#1f2116] placeholder:text-[#94a3b8] transition-colors",
                     error && "border-red-300 focus-visible:ring-red-400/20"
                   )}
                 />
@@ -364,18 +395,23 @@ export default function LoginPage() {
             </div>
 
             {/* Remember me */}
-            <div className="flex items-center gap-2">
-              <input
-                id="rememberMe"
-                type="checkbox"
-                checked={formData.rememberMe}
-                onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
-                disabled={isLoading}
-                className="h-4 w-4 rounded border-[#e2e0d8] text-[#fdb549] focus:ring-[#fdb549]/30 cursor-pointer accent-[#fdb549]"
-              />
-              <Label htmlFor="rememberMe" className="text-sm text-[#64748b] cursor-pointer select-none">
-                Duy trì đăng nhập
-              </Label>
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <input
+                  id="rememberMe"
+                  type="checkbox"
+                  checked={formData.rememberMe}
+                  onChange={(e) => setFormData({ ...formData, rememberMe: e.target.checked })}
+                  disabled={isLoading}
+                  className="h-4 w-4 rounded border-[#e2e0d8] text-[#fdb549] focus:ring-[#fdb549]/30 cursor-pointer accent-[#fdb549]"
+                />
+                <Label htmlFor="rememberMe" className="text-sm text-[#64748b] cursor-pointer select-none">
+                  Duy trì đăng nhập
+                </Label>
+              </div>
+              <Link href="/forgot-password" className="text-sm font-medium text-[#ed7307] hover:text-[#bf4514] transition-colors">
+                Quên mật khẩu?
+              </Link>
             </div>
 
             {/* Submit */}
@@ -383,7 +419,7 @@ export default function LoginPage() {
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 text-sm font-semibold bg-[#1f2116] hover:bg-[#31361b] text-white border-0 shadow-sm transition-colors duration-200"
+                className="w-full h-12 rounded-xl text-sm font-semibold bg-[#1f2116] hover:bg-[#31361b] text-white border-0 shadow-lg shadow-[#1f2116]/10 transition-colors duration-200"
               >
                 {isLoading ? (
                   <span className="flex items-center gap-2">
